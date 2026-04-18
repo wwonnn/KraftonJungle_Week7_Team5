@@ -1,4 +1,4 @@
-﻿#include "Renderer/Frame/RendererResourceBootstrap.h"
+#include "Renderer/Frame/RendererResourceBootstrap.h"
 
 #include "Renderer/Renderer.h"
 
@@ -172,8 +172,8 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 
 	std::filesystem::path FolderIconPath = FPaths::AssetDir() / FString("Textures/FolderIcon.png");
 	std::filesystem::path FileIconPath   = FPaths::AssetDir() / FString("Textures/FileIcon.png");
-	Renderer.CreateTextureFromSTB(Device, FolderIconPath, &Renderer.FolderIconSRV);
-	Renderer.CreateTextureFromSTB(Device, FileIconPath, &Renderer.FileIconSRV);
+	Renderer.CreateTextureFromSTB(Device, FolderIconPath, &Renderer.FolderIconSRV, ETextureColorSpace::SRGB);
+	Renderer.CreateTextureFromSTB(Device, FileIconPath, &Renderer.FileIconSRV, ETextureColorSpace::SRGB);
 	if (!Renderer.DecalTextureCache->InitializeFallbackTexture(Device))
 	{
 		return false;

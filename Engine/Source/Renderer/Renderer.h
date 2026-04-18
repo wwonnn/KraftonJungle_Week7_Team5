@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Renderer/Features/Fog/FogStats.h"
@@ -26,6 +26,11 @@ struct FVertex;
 struct FRenderMesh;
 struct FMeshPassFrameStats;
 enum class EPassDomain : uint8;
+enum class ETextureColorSpace : uint8
+{
+	Linear,
+	SRGB,
+};
 class FPixelShader;
 class FMaterial;
 class ULevel;
@@ -88,8 +93,16 @@ public:
 	bool RenderGameFrame(const FGameFrameRequest& Request);
 	bool RenderEditorFrame(const FEditorFrameRequest& Request);
 
-	bool CreateTextureFromSTB(ID3D11Device* Device, const char* FilePath, ID3D11ShaderResourceView** OutSRV);
-	bool CreateTextureFromSTB(ID3D11Device* Device, const std::filesystem::path& FilePath, ID3D11ShaderResourceView** OutSRV);
+	bool CreateTextureFromSTB(
+		ID3D11Device*             Device,
+		const char*              FilePath,
+		ID3D11ShaderResourceView** OutSRV,
+		ETextureColorSpace       ColorSpace);
+	bool CreateTextureFromSTB(
+		ID3D11Device*                Device,
+		const std::filesystem::path& FilePath,
+		ID3D11ShaderResourceView**   OutSRV,
+		ETextureColorSpace           ColorSpace);
 
 	void ConfigureMaterialPasses(FMaterial& Material, bool bTexturedMaterial);
 

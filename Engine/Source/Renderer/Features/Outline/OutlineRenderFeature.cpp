@@ -1,6 +1,7 @@
-﻿#include "Renderer/Features/Outline/OutlineRenderFeature.h"
+#include "Renderer/Features/Outline/OutlineRenderFeature.h"
 
 #include "Core/Paths.h"
+#include "Math/LinearColor.h"
 #include "Renderer/GraphicsCore/FullscreenPass.h"
 #include "Renderer/Mesh/RenderMesh.h"
 #include "Renderer/Resources/Material/Material.h"
@@ -11,7 +12,7 @@ namespace
 {
 	struct FOutlinePostConstantBuffer
 	{
-		FVector4 OutlineColor = FVector4(1.0f, 0.5f, 0.0f, 1.0f);
+		FVector4 OutlineColor = FLinearColor::FromSRGB(FVector4(1.0f, 0.5f, 0.0f, 1.0f)).ToVector4();
 		float OutlineThickness = 4.0f;
 		float OutlineThreshold = 0.1f;
 		float Padding[2] = {};

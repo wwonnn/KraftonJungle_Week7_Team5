@@ -1,4 +1,4 @@
-﻿#include "Asset/ObjManager.h"
+#include "Asset/ObjManager.h"
 
 #include <algorithm>
 #include <cctype>
@@ -853,7 +853,11 @@ namespace
 		}
 
 		ID3D11ShaderResourceView* NewSRV = nullptr;
-		if (!GEngine->GetRenderer()->CreateTextureFromSTB(GEngine->GetRenderer()->GetDevice(), TexturePath, &NewSRV))
+		if (!GEngine->GetRenderer()->CreateTextureFromSTB(
+			GEngine->GetRenderer()->GetDevice(),
+			TexturePath,
+			&NewSRV,
+			ETextureColorSpace::SRGB))
 		{
 			return false;
 		}

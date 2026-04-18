@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 
@@ -25,6 +25,20 @@ struct ENGINE_API FLinearColor
 	{
 		return FVector4(R, G, B, A);
 	}
+
+	FVector4 ToSRGBVector4() const;
+
+	static float SRGBChannelToLinear(float Value);
+	static float LinearChannelToSRGB(float Value);
+
+	static bool IsUnitIntervalRGB(const FVector4& Value);
+
+	static FLinearColor FromSRGB(const float* Color);
+	static FLinearColor FromSRGB(const FVector4& Color);
+	static FVector4 SRGBToLinear(const FVector4& Color);
+	static FVector4 LinearToSRGB(const FVector4& Color);
+	static FLinearColor DecodeSerializedColor(const FVector4& StoredColor, bool bStoredAsLinear);
+	static FVector4 DecodeSerializedVector(const FVector4& StoredColor, bool bStoredAsLinear);
 
 	static const FLinearColor White;
 	static const FLinearColor Black;

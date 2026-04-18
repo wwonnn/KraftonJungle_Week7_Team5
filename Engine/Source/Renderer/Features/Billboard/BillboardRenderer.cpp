@@ -1,4 +1,4 @@
-﻿#include "BillboardRenderer.h"
+#include "BillboardRenderer.h"
 
 #include <WICTextureLoader.h>
 #include <algorithm>
@@ -198,7 +198,18 @@ std::shared_ptr<FMaterialTexture> FBillboardRenderer::GetOrLoadTexture(const std
 	}
 
 	ID3D11ShaderResourceView* SRV = nullptr;
-	HRESULT Hr = DirectX::CreateWICTextureFromFile(Device, DeviceContext, NormalizedPath.c_str(), nullptr, &SRV);
+	HRESULT Hr = DirectX::CreateWICTextureFromFileEx(
+		Device,
+		DeviceContext,
+		NormalizedPath.c_str(),
+		0,
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_SHADER_RESOURCE,
+		0,
+		0,
+		DirectX::WIC_LOADER_FORCE_SRGB,
+		nullptr,
+		&SRV);
 	if (FAILED(Hr) || !SRV)
 	{
 		return nullptr;

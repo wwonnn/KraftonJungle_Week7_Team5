@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Component/PrimitiveComponent.h"
 
@@ -23,5 +23,5 @@ public:
 	float AllowBackground = 1.0f;
 
 
-	FLinearColor FogInscatteringColor = FLinearColor(0.75f, 0.80f, 0.90f, 0.5f);
+	FLinearColor FogInscatteringColor = FLinearColor::FromSRGB(FVector4(0.75f, 0.80f, 0.90f, 0.5f));
 };

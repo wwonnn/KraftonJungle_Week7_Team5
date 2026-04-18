@@ -10,8 +10,10 @@
 
 namespace
 {
-    static constexpr uint32 DECAL_MAX_TEXTURE_SLICES = 16;
-    static const std::wstring GSpotLightFakeCircularMaskPath = L"__SpotLightFakeCircularMask__";
+    static constexpr uint32      DECAL_MAX_TEXTURE_SLICES = 16;
+    static constexpr DXGI_FORMAT GDecalBaseColorTextureFormat = DXGI_FORMAT_R8G8B8A8_TYPELESS;
+    static constexpr DXGI_FORMAT GDecalBaseColorSRVFormat = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+    static const std::wstring    GSpotLightFakeCircularMaskPath = L"__SpotLightFakeCircularMask__";
 
     std::wstring NormalizeDecalTexturePath(const std::wstring& TexturePath)
     {
@@ -66,7 +68,7 @@ bool FDecalTextureCache::CreateSolidColorTextureSRV(ID3D11Device* Device, uint32
     Desc.Height = 1;
     Desc.MipLevels = 1;
     Desc.ArraySize = 1;
-    Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    Desc.Format = GDecalBaseColorTextureFormat;
     Desc.SampleDesc.Count = 1;
     Desc.Usage = D3D11_USAGE_DEFAULT;
     Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -79,7 +81,12 @@ bool FDecalTextureCache::CreateSolidColorTextureSRV(ID3D11Device* Device, uint32
         return false;
     }
 
-    const HRESULT Hr = Device->CreateShaderResourceView(Texture, nullptr, OutSRV);
+    D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+    SRVDesc.Format = GDecalBaseColorSRVFormat;
+    SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    SRVDesc.Texture2D.MipLevels = 1;
+
+    const HRESULT Hr = Device->CreateShaderResourceView(Texture, &SRVDesc, OutSRV);
     Texture->Release();
     return SUCCEEDED(Hr);
 }
@@ -167,7 +174,7 @@ ID3D11ShaderResourceView* FDecalTextureCache::GetOrLoadBaseColorTexture(ID3D11De
     Desc.Height = Height;
     Desc.MipLevels = 1;
     Desc.ArraySize = 1;
-    Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    Desc.Format = GDecalBaseColorTextureFormat;
     Desc.SampleDesc.Count = 1;
     Desc.Usage = D3D11_USAGE_DEFAULT;
     Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -180,7 +187,12 @@ ID3D11ShaderResourceView* FDecalTextureCache::GetOrLoadBaseColorTexture(ID3D11De
     }
 
     ID3D11ShaderResourceView* LoadedSRV = nullptr;
-    const HRESULT Hr = Device->CreateShaderResourceView(Texture, nullptr, &LoadedSRV);
+    D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+    SRVDesc.Format = GDecalBaseColorSRVFormat;
+    SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    SRVDesc.Texture2D.MipLevels = 1;
+
+    const HRESULT Hr = Device->CreateShaderResourceView(Texture, &SRVDesc, &LoadedSRV);
     Texture->Release();
     if (FAILED(Hr) || !LoadedSRV)
     {
@@ -377,7 +389,7 @@ void FDecalTextureCache::ResolveTextureArray(ID3D11Device* Device, FSceneViewDat
     Desc.Height = CanonicalH;
     Desc.MipLevels = 1;
     Desc.ArraySize = ArraySize;
-    Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    Desc.Format = GDecalBaseColorTextureFormat;
     Desc.SampleDesc.Count = 1;
     Desc.Usage = D3D11_USAGE_DEFAULT;
     Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
@@ -398,7 +410,7 @@ void FDecalTextureCache::ResolveTextureArray(ID3D11Device* Device, FSceneViewDat
     }
 
     D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-    SRVDesc.Format = Desc.Format;
+    SRVDesc.Format = GDecalBaseColorSRVFormat;
     SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
     SRVDesc.Texture2DArray.MostDetailedMip = 0;
     SRVDesc.Texture2DArray.MipLevels = 1;

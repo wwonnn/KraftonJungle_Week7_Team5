@@ -1,4 +1,4 @@
-﻿#include "Renderer/Features/Decal/VolumeDecalRenderFeature.h"
+#include "Renderer/Features/Decal/VolumeDecalRenderFeature.h"
 
 #include "Core/Paths.h"
 #include "Renderer/Renderer.h"
@@ -308,7 +308,7 @@ bool FVolumeDecalRenderFeature::RenderDebugOverlay(
         Renderer.UpdateObjectConstantBuffer(Item->DecalWorld);
 
         FDecalRenderItem DebugItem = *Item;
-        DebugItem.BaseColorTint = FLinearColor(1.0f, 0.6f, 0.1f, 1.0f);
+        DebugItem.BaseColorTint = FLinearColor::FromSRGB(FVector4(1.0f, 0.6f, 0.1f, 1.0f));
         if (!UpdatePerDecalConstants(Renderer, Request, DebugItem))
         {
             continue;

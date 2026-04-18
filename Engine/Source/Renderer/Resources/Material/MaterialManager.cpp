@@ -1,4 +1,4 @@
-﻿#include "Renderer/Resources/Material/MaterialManager.h"
+#include "Renderer/Resources/Material/MaterialManager.h"
 #include "Renderer/GraphicsCore/RenderStateManager.h"
 #include "Renderer/Resources/Material/Material.h"
 #include "Renderer/Resources/Shader/Shader.h"
@@ -219,7 +219,8 @@ std::shared_ptr<FMaterial> FMaterialManager::LoadFromFile(
 			if (GEngine->GetRenderer()->CreateTextureFromSTB(
 				InDevice,
 				FullTexPath,
-				&NewSRV))
+				&NewSRV,
+				ETextureColorSpace::SRGB))
 			{
 				// FMaterialTexture 래퍼를 만들어 머티리얼에 연결한다.
 				auto MatTexture = std::make_shared<FMaterialTexture>();

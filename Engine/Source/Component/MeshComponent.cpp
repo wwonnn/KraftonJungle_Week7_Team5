@@ -1,15 +1,18 @@
-﻿#include "Object/Class.h"
+#include "Object/Class.h"
 #include "Serializer/Archive.h"
 #include "Renderer/Resources/Material/Material.h"
 #include "Component/MeshComponent.h"
 
 #include "Debug/EngineLog.h"
+#include "Math/LinearColor.h"
 #include "Renderer/Resources/Material/MaterialManager.h"
 
 namespace
 {
 	constexpr const char* GMaterialBaseColorCountKey = "MaterialBaseColorCount";
 	constexpr const char* GMaterialBaseColorKeyPrefix = "MaterialBaseColor_";
+	constexpr const char* GMaterialBaseColorEncodingKey = "MaterialBaseColorEncoding";
+	constexpr const char* GLinearColorEncoding = "Linear";
 
 	std::shared_ptr<FMaterial> DuplicateMaterialInstance(const std::shared_ptr<FMaterial>& SourceMaterial)
 	{
@@ -68,6 +71,7 @@ void UMeshComponent::Serialize(FArchive& Ar)
 
 	if (Ar.IsSaving())
 	{
+		FString MaterialBaseColorEncoding = GLinearColorEncoding;
 		TArray<FString> MaterialNames;
 		for (const std::shared_ptr<FMaterial>& Material : Materials)
 		{
@@ -77,6 +81,7 @@ void UMeshComponent::Serialize(FArchive& Ar)
 		Ar.SerializeStringArray("Materials", MaterialNames);
 
 		int32 MaterialBaseColorCount = static_cast<int32>(Materials.size());
+		Ar.Serialize(GMaterialBaseColorEncodingKey, MaterialBaseColorEncoding);
 		Ar.Serialize(GMaterialBaseColorCountKey, MaterialBaseColorCount);
 		for (int32 MaterialIndex = 0; MaterialIndex < MaterialBaseColorCount; ++MaterialIndex)
 		{
@@ -91,6 +96,7 @@ void UMeshComponent::Serialize(FArchive& Ar)
 	}
 	else
 	{
+		FString MaterialBaseColorEncoding;
 		if (Ar.Contains("Materials"))
 		{
 			TArray<FString> MaterialNames;
@@ -109,6 +115,7 @@ void UMeshComponent::Serialize(FArchive& Ar)
 		}
 
 		int32 MaterialBaseColorCount = 0;
+		Ar.Serialize(GMaterialBaseColorEncodingKey, MaterialBaseColorEncoding);
 		Ar.Serialize(GMaterialBaseColorCountKey, MaterialBaseColorCount);
 		for (int32 MaterialIndex = 0; MaterialIndex < MaterialBaseColorCount; ++MaterialIndex)
 		{
@@ -120,6 +127,7 @@ void UMeshComponent::Serialize(FArchive& Ar)
 
 			FVector4 BaseColor(1.0f, 1.0f, 1.0f, 1.0f);
 			Ar.Serialize(BaseColorKey, BaseColor);
+			BaseColor = FLinearColor::DecodeSerializedVector(BaseColor, MaterialBaseColorEncoding == GLinearColorEncoding);
 
 			if (!Materials[MaterialIndex])
 			{

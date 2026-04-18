@@ -214,19 +214,25 @@ bool FRenderer::RenderEditorFrame(const FEditorFrameRequest& Request)
 	return FEditorFrameRenderer::Render(*this, Request);
 }
 
-bool FRenderer::CreateTextureFromSTB(ID3D11Device* Device, const char* FilePath, ID3D11ShaderResourceView** OutSRV)
+bool FRenderer::CreateTextureFromSTB(
+	ID3D11Device*              Device,
+	const char*               FilePath,
+	ID3D11ShaderResourceView** OutSRV,
+	ETextureColorSpace        ColorSpace)
 {
 	if (FilePath == nullptr)
 	{
 		return false;
 	}
 
-	return CreateTextureFromSTB(Device, FPaths::ToPath(FilePath), OutSRV);
+	return CreateTextureFromSTB(Device, FPaths::ToPath(FilePath), OutSRV, ColorSpace);
 }
 
-bool FRenderer::CreateTextureFromSTB(ID3D11Device*                Device,
-                                     const std::filesystem::path& FilePath,
-                                     ID3D11ShaderResourceView**   OutSRV)
+bool FRenderer::CreateTextureFromSTB(
+	ID3D11Device*                Device,
+	const std::filesystem::path& FilePath,
+	ID3D11ShaderResourceView**   OutSRV,
+	ETextureColorSpace           ColorSpace)
 {
 	if (Device == nullptr || OutSRV == nullptr || FilePath.empty())
 	{
@@ -261,12 +267,16 @@ bool FRenderer::CreateTextureFromSTB(ID3D11Device*                Device,
 		return false;
 	}
 
+	const bool   bSRGB        = (ColorSpace == ETextureColorSpace::SRGB);
+	const DXGI_FORMAT TextureFormat = bSRGB ? DXGI_FORMAT_R8G8B8A8_TYPELESS : DXGI_FORMAT_R8G8B8A8_UNORM;
+	const DXGI_FORMAT SRVFormat     = bSRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+
 	D3D11_TEXTURE2D_DESC Desc = {};
 	Desc.Width                = W;
 	Desc.Height               = H;
 	Desc.MipLevels            = 1;
 	Desc.ArraySize            = 1;
-	Desc.Format               = DXGI_FORMAT_R8G8B8A8_UNORM;
+	Desc.Format               = TextureFormat;
 	Desc.SampleDesc.Count     = 1;
 	Desc.Usage                = D3D11_USAGE_DEFAULT;
 	Desc.BindFlags            = D3D11_BIND_SHADER_RESOURCE;
@@ -280,7 +290,11 @@ bool FRenderer::CreateTextureFromSTB(ID3D11Device*                Device,
 		return false;
 	}
 
-	Hr = Device->CreateShaderResourceView(Tex, nullptr, OutSRV);
+	D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
+	SRVDesc.Format                          = SRVFormat;
+	SRVDesc.ViewDimension                   = D3D11_SRV_DIMENSION_TEXTURE2D;
+	SRVDesc.Texture2D.MipLevels             = 1;
+	Hr                                      = Device->CreateShaderResourceView(Tex, &SRVDesc, OutSRV);
 	Tex->Release();
 	return SUCCEEDED(Hr);
 }

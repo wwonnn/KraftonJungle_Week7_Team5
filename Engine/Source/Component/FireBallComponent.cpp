@@ -1,7 +1,13 @@
-﻿#include "Component/FireBallComponent.h"
+#include "Component/FireBallComponent.h"
 
 #include "Object/Class.h"
 #include "Serializer/Archive.h"
+
+namespace
+{
+	constexpr const char* GLinearColorEncoding  = "Linear";
+	constexpr const char* GFireColorEncodingKey = "ColorEncoding";
+}
 
 IMPLEMENT_RTTI(UFireBallComponent, UPrimitiveComponent)
 
@@ -10,8 +16,10 @@ void UFireBallComponent::Serialize(FArchive& Ar)
 	UPrimitiveComponent::Serialize(Ar);
 
 	FVector4 FireColor = Color.ToVector4();
+	FString FireColorEncoding = GLinearColorEncoding;
 
 	Ar.Serialize("Color", FireColor);
+	Ar.Serialize(GFireColorEncodingKey, FireColorEncoding);
 	Ar.Serialize("Intensity", Intensity);
 	Ar.Serialize("Radius", Radius);
 	Ar.Serialize("RadiusFallOff", RadiusFallOff);
@@ -21,7 +29,8 @@ void UFireBallComponent::Serialize(FArchive& Ar)
 		Intensity = (std::max)(0.0f, Intensity);
 		Radius = (std::max)(0.0f, Radius);
 		RadiusFallOff = (std::max)(0.0f, RadiusFallOff);
-		Color = FLinearColor(FireColor.X, FireColor.Y, FireColor.Z, FireColor.W);
+		const bool bStoredAsLinear = (FireColorEncoding == GLinearColorEncoding);
+		Color = FLinearColor::DecodeSerializedColor(FireColor, bStoredAsLinear);
 	}
 }
 

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Component/PrimitiveComponent.h"
 #include "Math/LinearColor.h"
@@ -20,5 +20,5 @@ public:
 	float FogMaxOpacity = 1.0f;
 	float AllowBackground = 1.0f;
 	FVector FogExtents = FVector(1.0f, 1.0f, 1.0f);
-	FLinearColor FogInscatteringColor = FLinearColor(0.75f, 0.80f, 0.90f, 0.5f);
+	FLinearColor FogInscatteringColor = FLinearColor::FromSRGB(FVector4(0.75f, 0.80f, 0.90f, 0.5f));
 };

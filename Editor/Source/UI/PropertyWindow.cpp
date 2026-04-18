@@ -1,4 +1,4 @@
-﻿#include "PropertyWindow.h"
+#include "PropertyWindow.h"
 #include "EditorEngine.h"
 #include "Actor/Actor.h"
 #include "Actor/SpotLightFakeActor.h"
@@ -29,6 +29,7 @@
 #include "Renderer/Resources/Material/Material.h"
 #include "Renderer/Resources/Material/MaterialManager.h"
 #include "Core/Paths.h"
+#include "Math/LinearColor.h"
 
 #include <algorithm>
 
@@ -211,6 +212,34 @@ namespace
 		}
 
 		std::sort(OutFiles.begin(), OutFiles.end());
+	}
+
+	bool EditLinearColor4(const char* Label, FVector4& InOutColor, ImGuiColorEditFlags Flags = 0)
+	{
+		const FVector4 DisplayColor = FLinearColor::LinearToSRGB(InOutColor);
+		float ColorArray[4] = { DisplayColor.X, DisplayColor.Y, DisplayColor.Z, DisplayColor.W };
+		if (!ImGui::ColorEdit4(
+			Label,
+			ColorArray,
+			Flags | ImGuiColorEditFlags_Float | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_HDR))
+		{
+			return false;
+		}
+
+		InOutColor = FLinearColor::SRGBToLinear(FVector4(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]));
+		return true;
+	}
+
+	bool EditLinearColor4(const char* Label, FLinearColor& InOutColor, ImGuiColorEditFlags Flags = 0)
+	{
+		FVector4 LinearColor = InOutColor.ToVector4();
+		if (!EditLinearColor4(Label, LinearColor, Flags))
+		{
+			return false;
+		}
+
+		InOutColor = FLinearColor(LinearColor.X, LinearColor.Y, LinearColor.Z, LinearColor.W);
+		return true;
 	}
 }
 
@@ -514,13 +543,11 @@ void FPropertyWindow::Render(FEditorEngine* Engine)
 
 							if (CurrentMat)
 							{
-								FVector4 MatColor      = CurrentMat->GetVectorParameter("BaseColor");
-								float    ColorArray[4] = {MatColor.X, MatColor.Y, MatColor.Z, MatColor.W};
-
 								ImGui::PushID(i + 1000);
-								if (ImGui::ColorEdit4("Base Color", ColorArray))
+								FVector4 MatColor = CurrentMat->GetVectorParameter("BaseColor");
+								if (EditLinearColor4("Base Color", MatColor))
 								{
-									CurrentMat->SetParameterData("BaseColor", ColorArray, sizeof(ColorArray));
+									CurrentMat->SetParameterData("BaseColor", &MatColor, sizeof(MatColor));
 								}
 								ImGui::PopID();
 
@@ -1147,11 +1174,10 @@ void FPropertyWindow::DrawStaticMeshComponentDetails(UStaticMeshComponent* MeshC
 
 		if (CurrentMaterial)
 		{
-			FVector4 BaseColor     = CurrentMaterial->GetVectorParameter("BaseColor");
-			float    ColorArray[4] = {BaseColor.X, BaseColor.Y, BaseColor.Z, BaseColor.W};
-			if (ImGui::ColorEdit4("Base Color", ColorArray))
+			FVector4 BaseColor = CurrentMaterial->GetVectorParameter("BaseColor");
+			if (EditLinearColor4("Base Color", BaseColor))
 			{
-				CurrentMaterial->SetParameterData("BaseColor", ColorArray, sizeof(ColorArray));
+				CurrentMaterial->SetParameterData("BaseColor", &BaseColor, sizeof(BaseColor));
 			}
 
 			float ScrollArray[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -1288,11 +1314,10 @@ void FPropertyWindow::DrawTextComponentDetails(UTextRenderComponent* TextCompone
 		}
 	}
 
-	FVector4 TextColor     = TextComponent->GetTextColor();
-	float    ColorArray[4] = {TextColor.X, TextColor.Y, TextColor.Z, TextColor.W};
-	if (ImGui::ColorEdit4("Text Color", ColorArray))
+	FVector4 TextColor = TextComponent->GetTextColor();
+	if (EditLinearColor4("Text Color", TextColor))
 	{
-		TextComponent->SetTextColor(FVector4(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]));
+		TextComponent->SetTextColor(TextColor);
 		TextComponent->MarkTextMeshDirty();
 	}
 
@@ -1416,16 +1441,10 @@ void FPropertyWindow::DrawHeightFogComponentDetails(UHeightFogComponent* HeightF
 
 	ImGui::SliderFloat("Max Opacity", &HeightFogComponent->FogMaxOpacity, 0.0f, 1.0f, "%.2f");
 
-	float ColorArray[4] =
+	FLinearColor FogColor = HeightFogComponent->FogInscatteringColor;
+	if (EditLinearColor4("Fog Color", FogColor))
 	{
-		HeightFogComponent->FogInscatteringColor.R,
-		HeightFogComponent->FogInscatteringColor.G,
-		HeightFogComponent->FogInscatteringColor.B,
-		HeightFogComponent->FogInscatteringColor.A
-	};
-	if (ImGui::ColorEdit4("Fog Color", ColorArray))
-	{
-		HeightFogComponent->FogInscatteringColor = FLinearColor(ColorArray);
+		HeightFogComponent->FogInscatteringColor = FogColor;
 	}
 
 	bool AllowBackground = static_cast<bool>(HeightFogComponent->AllowBackground);
@@ -1459,16 +1478,10 @@ void FPropertyWindow::DrawLocalHeightFogComponentDetails(ULocalHeightFogComponen
 
 	ImGui::SliderFloat("Max Opacity", &LocalHeightFogComponent->FogMaxOpacity, 0.0f, 1.0f, "%.2f");
 
-	float ColorArray[4] =
+	FLinearColor FogColor = LocalHeightFogComponent->FogInscatteringColor;
+	if (EditLinearColor4("Fog Color", FogColor))
 	{
-		LocalHeightFogComponent->FogInscatteringColor.R,
-		LocalHeightFogComponent->FogInscatteringColor.G,
-		LocalHeightFogComponent->FogInscatteringColor.B,
-		LocalHeightFogComponent->FogInscatteringColor.A
-	};
-	if (ImGui::ColorEdit4("Fog Color", ColorArray))
-	{
-		LocalHeightFogComponent->FogInscatteringColor = FLinearColor(ColorArray);
+		LocalHeightFogComponent->FogInscatteringColor = FogColor;
 	}
 
 	bool AllowBackground = static_cast<bool>(LocalHeightFogComponent->AllowBackground);
@@ -1529,15 +1542,10 @@ void FPropertyWindow::DrawBillboardComponentDetials(UBillboardComponent* Billboa
 		BillboardComponent->SetSize(FVector2(Size[0], Size[1]));
 	}
 
-	FVector4 BillboardBaseColor     = BillboardComponent->GetBaseColor();
-	float    BillboardColorArray[4] = {BillboardBaseColor.X, BillboardBaseColor.Y, BillboardBaseColor.Z, BillboardBaseColor.W};
-	if (ImGui::ColorEdit4("Base Color", BillboardColorArray))
+	FVector4 BillboardBaseColor = BillboardComponent->GetBaseColor();
+	if (EditLinearColor4("Base Color", BillboardBaseColor))
 	{
-		BillboardComponent->SetBaseColor(FVector4(
-			BillboardColorArray[0],
-			BillboardColorArray[1],
-			BillboardColorArray[2],
-			BillboardColorArray[3]));
+		BillboardComponent->SetBaseColor(BillboardBaseColor);
 	}
 
 	float U  = BillboardComponent->GetUVMin().X;
@@ -1661,16 +1669,10 @@ void FPropertyWindow::DrawDecalComponentDetails(UDecalComponent* DecalComponent,
 		ImGui::EndCombo();
 	}
 
-	float Tint[4] =
+	FLinearColor BaseColorTint = DecalComponent->GetBaseColorTint();
+	if (EditLinearColor4("Base Color Tint", BaseColorTint))
 	{
-		DecalComponent->GetBaseColorTint().R,
-		DecalComponent->GetBaseColorTint().G,
-		DecalComponent->GetBaseColorTint().B,
-		DecalComponent->GetBaseColorTint().A
-	};
-	if (ImGui::ColorEdit4("Base Color Tint", Tint))
-	{
-		DecalComponent->SetBaseColorTint(FLinearColor(Tint));
+		DecalComponent->SetBaseColorTint(BaseColorTint);
 	}
 
 	float EdgeFade = DecalComponent->GetEdgeFade();
@@ -1748,11 +1750,10 @@ void FPropertyWindow::DrawFireBallComponentDetails(UFireBallComponent* FireBallC
 		FireBallComponent->SetRadiusFallOff((std::max)(0.0f, RadiusFallOff));
 	}
 
-	FLinearColor Color         = FireBallComponent->GetColor();
-	float        ColorArray[4] = {Color.R, Color.G, Color.B, Color.A};
-	if (ImGui::ColorEdit4("Color", ColorArray))
+	FLinearColor Color = FireBallComponent->GetColor();
+	if (EditLinearColor4("Color", Color))
 	{
-		FireBallComponent->SetColor(FLinearColor(ColorArray[0], ColorArray[1], ColorArray[2], ColorArray[3]));
+		FireBallComponent->SetColor(Color);
 	}
 }
 

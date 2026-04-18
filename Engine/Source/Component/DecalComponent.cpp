@@ -6,6 +6,12 @@
 #include "Object/Class.h"
 #include "Serializer/Archive.h"
 
+namespace
+{
+	constexpr const char* GLinearColorEncoding      = "Linear";
+	constexpr const char* GBaseColorTintEncodingKey = "BaseColorTintEncoding";
+}
+
 IMPLEMENT_RTTI(UDecalComponent, UPrimitiveComponent)
 
 void UDecalComponent::BumpRevision(uint32& InOutRevision)
@@ -345,6 +351,7 @@ void UDecalComponent::Serialize(FArchive& Ar)
 	}
 
 	FVector4 BaseColorTintVector = BaseColorTint.ToVector4();
+	FString BaseColorTintEncoding = GLinearColorEncoding;
 
 	Ar.Serialize("Enabled", bEnabled);
 	Ar.Serialize("Size", Size);
@@ -356,6 +363,7 @@ void UDecalComponent::Serialize(FArchive& Ar)
 	Ar.Serialize("Priority", Priority);
 	Ar.Serialize("ReceiverLayerMask", ReceiverLayerMask);
 	Ar.Serialize("BaseColorTint", BaseColorTintVector);
+	Ar.Serialize(GBaseColorTintEncodingKey, BaseColorTintEncoding);
 	Ar.Serialize("NormalBlend", NormalBlend);
 	Ar.Serialize("RoughnessBlend", RoughnessBlend);
 	Ar.Serialize("EmissiveBlend", EmissiveBlend);
@@ -383,11 +391,8 @@ void UDecalComponent::Serialize(FArchive& Ar)
 
 		TextureIndex = 0;
 
-		BaseColorTint = FLinearColor(
-			BaseColorTintVector.X,
-			BaseColorTintVector.Y,
-			BaseColorTintVector.Z,
-			BaseColorTintVector.W);
+		const bool bStoredAsLinear = (BaseColorTintEncoding == GLinearColorEncoding);
+		BaseColorTint = FLinearColor::DecodeSerializedColor(BaseColorTintVector, bStoredAsLinear);
 		NormalBlend = std::clamp(NormalBlend, 0.0f, 1.0f);
 		RoughnessBlend = std::clamp(RoughnessBlend, 0.0f, 1.0f);
 		EmissiveBlend = std::clamp(EmissiveBlend, 0.0f, 1.0f);

@@ -1,5 +1,6 @@
-﻿#include "Renderer/UI/Screen/ScreenUIRendererUtils.h"
+#include "Renderer/UI/Screen/ScreenUIRendererUtils.h"
 
+#include "Math/LinearColor.h"
 #include "Renderer/Mesh/Vertex.h"
 
 #include <algorithm>
@@ -28,7 +29,7 @@ namespace ScreenUIRendererUtils
         const float R = ((C >> 16) & 0xFF) / 255.0f;
         const float G = ((C >> 8) & 0xFF) / 255.0f;
         const float B = (C & 0xFF) / 255.0f;
-        return { R, G, B, A };
+        return FLinearColor::SRGBToLinear(FVector4(R, G, B, A));
     }
 
     void ConvertTextMeshToScreenSpace(FDynamicMesh& Mesh)

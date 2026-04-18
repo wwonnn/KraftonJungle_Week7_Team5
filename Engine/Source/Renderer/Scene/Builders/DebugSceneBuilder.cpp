@@ -1,4 +1,4 @@
-﻿#include "Renderer/Scene/Builders/DebugSceneBuilder.h"
+#include "Renderer/Scene/Builders/DebugSceneBuilder.h"
 
 #include "Actor/Actor.h"
 #include "Component/PrimitiveComponent.h"
@@ -6,6 +6,7 @@
 #include "Component/UUIDBillboardComponent.h"
 #include "Debug/DebugDrawManager.h"
 #include "Level/PrimitiveVisibilityUtils.h"
+#include "Math/LinearColor.h"
 #include "Renderer/Features/Debug/DebugLineRenderFeature.h"
 #include "World/World.h"
 
@@ -52,7 +53,9 @@ void AppendActorSceneBVHDebug(AActor *BoundsActor, UWorld *World, const FShowFla
 
                 const FVector Center = (Bounds.PMin + Bounds.PMax) * 0.5f;
                 const FVector Extent = (Bounds.PMax - Bounds.PMin) * 0.5f;
-                const FVector4 Color = bIsLeaf ? FVector4(1.0f, 1.0f, 0.2f, 1.0f) : FVector4(1.0f, 0.9f, 0.1f, 1.0f);
+                const FVector4 Color = bIsLeaf
+                    ? FLinearColor::FromSRGB(FVector4(1.0f, 1.0f, 0.2f, 1.0f)).ToVector4()
+                    : FLinearColor::FromSRGB(FVector4(1.0f, 0.9f, 0.1f, 1.0f)).ToVector4();
 
                 OutPrimitives.Cubes.push_back({Center, Extent, Color});
             });
@@ -128,7 +131,9 @@ void AppendActorMeshBVHDebug(AActor *BoundsActor, UWorld *World, const FShowFlag
 
         const FVector Center = (WorldMin + WorldMax) * 0.5f;
         const FVector Extent = (WorldMax - WorldMin) * 0.5f;
-        const FVector4 Color = bIsLeaf ? FVector4(0.2f, 1.0f, 1.0f, 1.0f) : FVector4(0.0f, 0.85f, 1.0f, 1.0f);
+        const FVector4 Color = bIsLeaf
+            ? FLinearColor::FromSRGB(FVector4(0.2f, 1.0f, 1.0f, 1.0f)).ToVector4()
+            : FLinearColor::FromSRGB(FVector4(0.0f, 0.85f, 1.0f, 1.0f)).ToVector4();
 
         OutPrimitives.Cubes.push_back({Center, Extent, Color});
     });

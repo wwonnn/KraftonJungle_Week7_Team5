@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include <d3d11.h>
@@ -72,9 +72,9 @@ public:
 	void BindSwapChainRTV()
 	{
 		ID3D11RenderTargetView* PresentRTV = PresentationRenderTargetView ? PresentationRenderTargetView : RenderTargetView;
-		if (RenderTargetView && DeviceContext)
+		if (PresentRTV && DeviceContext)
 		{
-			DeviceContext->OMSetRenderTargets(1, &RenderTargetView, DepthStencilView);
+			DeviceContext->OMSetRenderTargets(1, &PresentRTV, DepthStencilView);
 			DeviceContext->RSSetViewports(1, &Viewport);
 		}
 	}

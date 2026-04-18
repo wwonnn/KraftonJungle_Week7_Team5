@@ -36,7 +36,7 @@ namespace
 				Request,
 				Context.Targets,
 				OverlayRenderTarget,
-				FLinearColor(1.0f, 0.6f, 0.1f, 1.0f))
+				FLinearColor::FromSRGB(FVector4(1.0f, 0.6f, 0.1f, 1.0f)))
 			: true;
 	}
 
@@ -60,7 +60,7 @@ namespace
 				Request,
 				Context.Targets,
 				OverlayRenderTarget,
-				FLinearColor(0.65f, 0.25f, 1.0f, 1.0f))
+				FLinearColor::FromSRGB(FVector4(0.65f, 0.25f, 1.0f, 1.0f)))
 			: true;
 	}
 }

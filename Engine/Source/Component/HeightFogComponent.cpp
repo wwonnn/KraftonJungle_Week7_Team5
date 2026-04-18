@@ -1,9 +1,15 @@
-﻿#include "Component/HeightFogComponent.h"
+#include "Component/HeightFogComponent.h"
 
 #include <algorithm>
 
 #include "Object/Class.h"
 #include "Serializer/Archive.h"
+
+namespace
+{
+	constexpr const char* GLinearColorEncoding = "Linear";
+	constexpr const char* GFogColorEncodingKey = "FogInscatteringColorEncoding";
+}
 
 IMPLEMENT_RTTI(UHeightFogComponent, UPrimitiveComponent)
 
@@ -17,6 +23,7 @@ void UHeightFogComponent::Serialize(FArchive& Ar)
 	UPrimitiveComponent::Serialize(Ar);
 
 	FVector4 FogColor = FogInscatteringColor.ToVector4();
+	FString FogColorEncoding = GLinearColorEncoding;
 
 	Ar.Serialize("FogDensity", FogDensity);
 	Ar.Serialize("FogHeightFalloff", FogHeightFalloff);
@@ -24,6 +31,7 @@ void UHeightFogComponent::Serialize(FArchive& Ar)
 	Ar.Serialize("FogCutoffDistance", FogCutoffDistance);
 	Ar.Serialize("FogMaxOpacity", FogMaxOpacity);
 	Ar.Serialize("FogInscatteringColor", FogColor);
+	Ar.Serialize(GFogColorEncodingKey, FogColorEncoding);
 	Ar.Serialize("FogAllowBackground", AllowBackground);
 
 	if (Ar.IsLoading())
@@ -33,7 +41,8 @@ void UHeightFogComponent::Serialize(FArchive& Ar)
 		StartDistance = (std::max)(0.0f, StartDistance);
 		FogCutoffDistance = (std::max)(0.0f, FogCutoffDistance);
 		FogMaxOpacity = std::clamp(FogMaxOpacity, 0.0f, 1.0f);
-		FogInscatteringColor = FLinearColor(FogColor.X, FogColor.Y, FogColor.Z, FogColor.W);
+		const bool bStoredAsLinear = (FogColorEncoding == GLinearColorEncoding);
+		FogInscatteringColor = FLinearColor::DecodeSerializedColor(FogColor, bStoredAsLinear);
 	}
 }
 

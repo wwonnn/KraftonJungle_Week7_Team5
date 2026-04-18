@@ -1,11 +1,18 @@
-﻿#include "Component/BillboardComponent.h"
+#include "Component/BillboardComponent.h"
 #include "Core/Paths.h"
 #include "Component/DecalComponent.h"
+#include "Math/LinearColor.h"
 #include "Math/Matrix.h"
 #include "Object/Class.h"
 #include "Renderer/Mesh/MeshData.h"
 #include "Serializer/Archive.h"
 #include <cmath>
+
+namespace
+{
+	constexpr const char* GLinearColorEncoding       = "Linear";
+	constexpr const char* GBillboardColorEncodingKey = "BaseColorEncoding";
+}
 
 IMPLEMENT_RTTI(UBillboardComponent, UPrimitiveComponent)
 
@@ -60,21 +67,25 @@ void UBillboardComponent::Serialize(FArchive& Ar)
 
 	if (Ar.IsSaving())
 	{
+		FString BaseColorEncoding = GLinearColorEncoding;
 		Ar.Serialize("TexturePath", TexturePathString);
 		Ar.Serialize("Size", Size);
 		Ar.Serialize("UVMin", UVMin);
 		Ar.Serialize("UVMax", UVMax);
 		Ar.Serialize("BaseColor", BaseColor);
+		Ar.Serialize(GBillboardColorEncodingKey, BaseColorEncoding);
 		int32 AxisLockModeValue = static_cast<int32>(AxisLockMode);
 		Ar.Serialize("AxisLockMode", AxisLockModeValue);
 	}
 	else
 	{
+		FString BaseColorEncoding;
 		Ar.Serialize("TexturePath", TexturePathString);
 		Ar.Serialize("Size", Size);
 		Ar.Serialize("UVMin", UVMin);
 		Ar.Serialize("UVMax", UVMax);
 		Ar.Serialize("BaseColor", BaseColor);
+		Ar.Serialize(GBillboardColorEncodingKey, BaseColorEncoding);
 		int32 AxisLockModeValue = static_cast<int32>(AxisLockMode);
 		Ar.Serialize("AxisLockMode", AxisLockModeValue);
 		if (AxisLockModeValue < static_cast<int32>(EAxisLockMode::None) || AxisLockModeValue > static_cast<int32>(EAxisLockMode::LocalZ))
@@ -86,6 +97,7 @@ void UBillboardComponent::Serialize(FArchive& Ar)
 		TexturePath = TexturePathString.empty()
 			? std::wstring()
 			: FPaths::ToWide(FPaths::ToAbsolutePath(TexturePathString));
+		BaseColor = FLinearColor::DecodeSerializedVector(BaseColor, BaseColorEncoding == GLinearColorEncoding);
 
 		MarkBillboardMeshDirty();
 		UpdateBounds();

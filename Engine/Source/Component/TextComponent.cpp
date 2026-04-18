@@ -1,10 +1,16 @@
-﻿#include "TextComponent.h"
+#include "TextComponent.h"
 #include "Object/Class.h"
 #include <algorithm>
 
+#include "Math/LinearColor.h"
 #include "Serializer/Archive.h"
 #include "Renderer/Common/RenderType.h"
 
+namespace
+{
+	constexpr const char* GLinearColorEncoding  = "Linear";
+	constexpr const char* GTextColorEncodingKey = "TextColorEncoding";
+}
 
 IMPLEMENT_RTTI(UTextRenderComponent, UPrimitiveComponent)
 
@@ -78,11 +84,13 @@ void UTextRenderComponent::Serialize(FArchive& Ar)
 
 	uint32 SavedHorizontalAlignment = static_cast<uint32>(HorizontalAlignment);
 	uint32 SavedVerticalAlignment = static_cast<uint32>(VerticalAlignment);
+	FString TextColorEncoding = GLinearColorEncoding;
 
 	if (Ar.IsSaving())
 	{
 		Ar.Serialize("Text", Text);
 		Ar.Serialize("TextColor", TextColor);
+		Ar.Serialize(GTextColorEncodingKey, TextColorEncoding);
 		Ar.Serialize("TextScale", TextScale);
 		Ar.Serialize("Billboard", bBillboard);
 		Ar.Serialize("HorizontalAlignment", SavedHorizontalAlignment);
@@ -92,11 +100,13 @@ void UTextRenderComponent::Serialize(FArchive& Ar)
 	{
 		Ar.Serialize("Text", Text);
 		Ar.Serialize("TextColor", TextColor);
+		Ar.Serialize(GTextColorEncodingKey, TextColorEncoding);
 		Ar.Serialize("TextScale", TextScale);
 		Ar.Serialize("Billboard", bBillboard);
 		Ar.Serialize("HorizontalAlignment", SavedHorizontalAlignment);
 		Ar.Serialize("VerticalAlignment", SavedVerticalAlignment);
 
+		TextColor = FLinearColor::DecodeSerializedVector(TextColor, TextColorEncoding == GLinearColorEncoding);
 		SetText(Text);
 		SetTextColor(TextColor);
 		SetTextScale(TextScale);
