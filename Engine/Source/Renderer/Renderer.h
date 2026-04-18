@@ -48,6 +48,7 @@ class FFXAARenderFeature;
 class FDebugLineRenderFeature;
 class FBillboardRenderer;
 class FDebugDrawManager;
+class FToneMappingRenderFeature;
 struct FScreenUIPassInputs;
 
 class ENGINE_API FRenderer
@@ -63,20 +64,27 @@ public:
 	bool IsOccluded();
 	void OnResize(int32 NewWidth, int32 NewHeight);
 
-	void SetVSync(bool bEnable) { RenderDevice.SetVSync(bEnable); }
-	bool IsVSyncEnabled() const { return RenderDevice.IsVSyncEnabled(); }
+	void SetVSync(bool bEnable)
+	{
+		RenderDevice.SetVSync(bEnable);
+	}
+
+	bool IsVSyncEnabled() const
+	{
+		return RenderDevice.IsVSyncEnabled();
+	}
 
 	bool RenderScreenUIPass(
 		const FScreenUIPassInputs& PassInputs,
-		const FFrameContext& Frame,
-		ID3D11RenderTargetView* RenderTargetView,
-		ID3D11DepthStencilView* DepthStencilView = nullptr);
+		const FFrameContext&       Frame,
+		ID3D11RenderTargetView*    RenderTargetView,
+		ID3D11DepthStencilView*    DepthStencilView = nullptr);
 	bool ComposeViewports(
 		const FViewportCompositePassInputs& Inputs,
-		const FFrameContext& Frame,
-		const FViewContext& View,
-		ID3D11RenderTargetView* RenderTargetView,
-		ID3D11DepthStencilView* DepthStencilView = nullptr);
+		const FFrameContext&                Frame,
+		const FViewContext&                 View,
+		ID3D11RenderTargetView*             RenderTargetView,
+		ID3D11DepthStencilView*             DepthStencilView = nullptr);
 	bool RenderGameFrame(const FGameFrameRequest& Request);
 	bool RenderEditorFrame(const FEditorFrameRequest& Request);
 
@@ -85,39 +93,102 @@ public:
 
 	void ConfigureMaterialPasses(FMaterial& Material, bool bTexturedMaterial);
 
-	FMaterial* GetDefaultMaterial() const { return DefaultMaterial.get(); }
-	FMaterial* GetDefaultTextureMaterial() const { return DefaultTextureMaterial.get(); }
-	size_t GetPrevCommandCount() const;
-	std::unique_ptr<FRenderStateManager>& GetRenderStateManager() { return RenderStateManager; }
-	ID3D11Device* GetDevice() const { return RenderDevice.GetDevice(); }
-	ID3D11DeviceContext* GetDeviceContext() const { return RenderDevice.GetDeviceContext(); }
-	ID3D11RenderTargetView* GetRenderTargetView() const { return RenderDevice.GetRenderTargetView(); }
-	IDXGISwapChain* GetSwapChain() const { return RenderDevice.GetSwapChain(); }
-	HWND GetHwnd() const { return RenderDevice.GetHwnd(); }
-	const D3D11_VIEWPORT& GetBackBufferViewport() const { return RenderDevice.GetViewport(); }
+	FMaterial* GetDefaultMaterial() const
+	{
+		return DefaultMaterial.get();
+	}
 
-	ISceneTextFeature* GetSceneTextFeature() const;
-	ISceneSubUVFeature* GetSceneSubUVFeature() const;
-	ISceneBillboardFeature* GetSceneBillboardFeature() const;
-	FFogRenderFeature* GetFogFeature() const;
-	FOutlineRenderFeature* GetOutlineFeature() const;
-	FDebugLineRenderFeature* GetDebugLineFeature() const;
-	FDecalRenderFeature* GetDecalFeature() const;
+	FMaterial* GetDefaultTextureMaterial() const
+	{
+		return DefaultTextureMaterial.get();
+	}
+
+	size_t GetPrevCommandCount() const;
+
+	std::unique_ptr<FRenderStateManager>& GetRenderStateManager()
+	{
+		return RenderStateManager;
+	}
+
+	ID3D11Device* GetDevice() const
+	{
+		return RenderDevice.GetDevice();
+	}
+
+	ID3D11DeviceContext* GetDeviceContext() const
+	{
+		return RenderDevice.GetDeviceContext();
+	}
+
+	ID3D11RenderTargetView* GetRenderTargetView() const
+	{
+		return RenderDevice.GetRenderTargetView();
+	}
+
+	IDXGISwapChain* GetSwapChain() const
+	{
+		return RenderDevice.GetSwapChain();
+	}
+
+	HWND GetHwnd() const
+	{
+		return RenderDevice.GetHwnd();
+	}
+
+	const D3D11_VIEWPORT& GetBackBufferViewport() const
+	{
+		return RenderDevice.GetViewport();
+	}
+
+	ISceneTextFeature*         GetSceneTextFeature() const;
+	ISceneSubUVFeature*        GetSceneSubUVFeature() const;
+	ISceneBillboardFeature*    GetSceneBillboardFeature() const;
+	FFogRenderFeature*         GetFogFeature() const;
+	FOutlineRenderFeature*     GetOutlineFeature() const;
+	FDebugLineRenderFeature*   GetDebugLineFeature() const;
+	FDecalRenderFeature*       GetDecalFeature() const;
 	FVolumeDecalRenderFeature* GetVolumeDecalFeature() const;
-	FFireBallRenderFeature* GetFireBallFeature() const;
-	FFXAARenderFeature* GetFXAAFeature() const;
-	FSceneRenderer& GetSceneRenderer() { return *SceneRenderer; }
-	FScreenUIRenderer& GetScreenUIRenderer() { return *ScreenUIRenderer; }
-	FRenderDevice& GetRenderDevice() { return RenderDevice; }
-	FBillboardRenderer& GetBillboardRenderer();
+	FFireBallRenderFeature*    GetFireBallFeature() const;
+	FFXAARenderFeature*        GetFXAAFeature() const;
+	FToneMappingRenderFeature* GetToneMappingRenderFeature() const;
+
+	FSceneRenderer& GetSceneRenderer()
+	{
+		return *SceneRenderer;
+	}
+
+	FScreenUIRenderer& GetScreenUIRenderer()
+	{
+		return *ScreenUIRenderer;
+	}
+
+	FRenderDevice& GetRenderDevice()
+	{
+		return RenderDevice;
+	}
+
+	FBillboardRenderer&     GetBillboardRenderer();
 	const FDecalFrameStats& GetDecalFrameStats() const;
-	FMeshPassFrameStats GetMeshPassFrameStats() const;
-	void SetDecalProjectionMode(EDecalProjectionMode InMode) { DecalProjectionMode = InMode; }
-	EDecalProjectionMode GetDecalProjectionMode() const { return DecalProjectionMode; }
-	FDecalStats GetDecalStats() const;
-    FFogStats GetFogStats() const;
+	FMeshPassFrameStats     GetMeshPassFrameStats() const;
+
+	void SetDecalProjectionMode(EDecalProjectionMode InMode)
+	{
+		DecalProjectionMode = InMode;
+	}
+
+	EDecalProjectionMode GetDecalProjectionMode() const
+	{
+		return DecalProjectionMode;
+	}
+
+	FDecalStats    GetDecalStats() const;
+	FFogStats      GetFogStats() const;
 	FGPUFrameStats GetGPUStats() const;
-    ID3D11SamplerState* GetDefaultSampler() const { return NormalSampler; }
+
+	ID3D11SamplerState* GetDefaultSampler() const
+	{
+		return NormalSampler;
+	}
 
 	void SetConstantBuffers();
 	void UpdateFrameConstantBuffer(const FFrameContext& Frame, const FViewContext& View);
@@ -126,10 +197,16 @@ public:
 	void PreparePassDomain(EPassDomain Domain, const FSceneRenderTargets& Targets);
 	bool ResolveSceneColorTargets(const FSceneRenderTargets& Targets);
 
-	ID3D11ShaderResourceView* GetFolderIconSRV() const { return FolderIconSRV; }
-	ID3D11ShaderResourceView* GetFileIconSRV() const { return FileIconSRV; }
+	ID3D11ShaderResourceView* GetFolderIconSRV() const
+	{
+		return FolderIconSRV;
+	}
 
-public:
+	ID3D11ShaderResourceView* GetFileIconSRV() const
+	{
+		return FileIconSRV;
+	}
+
 	FShaderManager ShaderManager;
 
 private:
@@ -148,36 +225,42 @@ private:
 	bool CreateConstantBuffers();
 	bool CreateSamplers();
 
+	bool CreateSceneColorResolveResources();
+	void ReleaseSceneColorResolveResources();
 
-private:
 	std::unique_ptr<FRenderStateManager> RenderStateManager = nullptr;
 
 	FRenderDevice RenderDevice;
 
-	ID3D11Buffer* FrameConstantBuffer = nullptr;
+	ID3D11Buffer* FrameConstantBuffer  = nullptr;
 	ID3D11Buffer* ObjectConstantBuffer = nullptr;
 
 	std::shared_ptr<FMaterial> DefaultMaterial;
 	std::shared_ptr<FMaterial> DefaultTextureMaterial;
 
-	std::unique_ptr<FSceneRenderer> SceneRenderer;
-	std::unique_ptr<FViewportCompositor> ViewportCompositor;
-	std::unique_ptr<FScreenUIRenderer> ScreenUIRenderer;
-	std::unique_ptr<FTextRenderFeature> TextFeature;
-	std::unique_ptr<FSubUVRenderFeature> SubUVFeature;
-	std::unique_ptr<FBillboardRenderFeature> BillboardFeature;
-	std::unique_ptr<FFogRenderFeature> FogFeature;
-	std::unique_ptr<FOutlineRenderFeature> OutlineFeature;
-	std::unique_ptr<FDebugLineRenderFeature> DebugLineFeature;
-	std::unique_ptr<FDecalRenderFeature> DecalFeature;
+	std::unique_ptr<FSceneRenderer>            SceneRenderer;
+	std::unique_ptr<FViewportCompositor>       ViewportCompositor;
+	std::unique_ptr<FScreenUIRenderer>         ScreenUIRenderer;
+	std::unique_ptr<FTextRenderFeature>        TextFeature;
+	std::unique_ptr<FSubUVRenderFeature>       SubUVFeature;
+	std::unique_ptr<FBillboardRenderFeature>   BillboardFeature;
+	std::unique_ptr<FFogRenderFeature>         FogFeature;
+	std::unique_ptr<FOutlineRenderFeature>     OutlineFeature;
+	std::unique_ptr<FDebugLineRenderFeature>   DebugLineFeature;
+	std::unique_ptr<FDecalRenderFeature>       DecalFeature;
 	std::unique_ptr<FVolumeDecalRenderFeature> VolumeDecalFeature;
-	std::unique_ptr<FFireBallRenderFeature> FireBallFeature;
-	std::unique_ptr<FFXAARenderFeature> FXAAFeature;
-	EDecalProjectionMode DecalProjectionMode = EDecalProjectionMode::ClusteredLookup;
+	std::unique_ptr<FFireBallRenderFeature>    FireBallFeature;
+	std::unique_ptr<FFXAARenderFeature>        FXAAFeature;
+	std::unique_ptr<FToneMappingRenderFeature> FToneMappingFeature;
+	EDecalProjectionMode                       DecalProjectionMode = EDecalProjectionMode::ClusteredLookup;
 
-	ID3D11ShaderResourceView* FolderIconSRV = nullptr;
-	ID3D11ShaderResourceView* FileIconSRV = nullptr;
+	ID3D11ShaderResourceView*            FolderIconSRV = nullptr;
+	ID3D11ShaderResourceView*            FileIconSRV   = nullptr;
 	std::unique_ptr<FSceneTargetManager> SceneTargetManager;
-	std::unique_ptr<FDecalTextureCache> DecalTextureCache;
-	ID3D11SamplerState* NormalSampler = nullptr;
+	std::unique_ptr<FDecalTextureCache>  DecalTextureCache;
+	ID3D11SamplerState*                  NormalSampler = nullptr;
+
+	ID3D11VertexShader* SceneColorResolveVertexShader = nullptr;
+	ID3D11PixelShader*  SceneColorResolvePixelShader  = nullptr;
+	ID3D11SamplerState* SceneColorResolveSampler      = nullptr;
 };

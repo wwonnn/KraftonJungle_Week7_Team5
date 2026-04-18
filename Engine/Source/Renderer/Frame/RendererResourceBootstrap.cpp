@@ -14,6 +14,7 @@
 #include "Renderer/Features/PostProcess/FXAARenderFeature.h"
 #include "Renderer/Features/SubUV/SubUVRenderFeature.h"
 #include "Renderer/Features/Text/TextRenderFeature.h"
+#include "Renderer/Features/PostProcess/ToneMappingRenderFeature.h"
 #include "Renderer/Resources/Material/Material.h"
 #include "Renderer/Resources/Material/MaterialManager.h"
 #include "Renderer/Resources/Shader/Shader.h"
@@ -29,16 +30,22 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 	}
 
 	std::wstring ShaderDirW = FPaths::ShaderDir();
-	std::wstring VSPath = ShaderDirW + L"SceneGeometry/VertexShader.hlsl";
-	std::wstring PSPath = ShaderDirW + L"SceneGeometry/PixelShader.hlsl";
+	std::wstring VSPath     = ShaderDirW + L"SceneGeometry/VertexShader.hlsl";
+	std::wstring PSPath     = ShaderDirW + L"SceneGeometry/PixelShader.hlsl";
 
-	if (!Renderer.ShaderManager.LoadVertexShader(Device, VSPath.c_str())) return false;
-	if (!Renderer.ShaderManager.LoadPixelShader(Device, PSPath.c_str())) return false;
+	if (!Renderer.ShaderManager.LoadVertexShader(Device, VSPath.c_str()))
+	{
+		return false;
+	}
+	if (!Renderer.ShaderManager.LoadPixelShader(Device, PSPath.c_str()))
+	{
+		return false;
+	}
 
 	{
-		auto VS = FShaderMap::Get().GetOrCreateVertexShader(Device, VSPath.c_str());
+		auto         VS          = FShaderMap::Get().GetOrCreateVertexShader(Device, VSPath.c_str());
 		std::wstring ColorPSPath = ShaderDirW + L"SceneGeometry/ColorPixelShader.hlsl";
-		auto PS = FShaderMap::Get().GetOrCreatePixelShader(Device, ColorPSPath.c_str());
+		auto         PS          = FShaderMap::Get().GetOrCreatePixelShader(Device, ColorPSPath.c_str());
 		Renderer.DefaultMaterial = std::make_shared<FMaterial>();
 		Renderer.DefaultMaterial->SetOriginName("M_Default");
 		Renderer.DefaultMaterial->SetVertexShader(VS);
@@ -47,14 +54,14 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 		FRasterizerStateOption rasterizerOption;
 		rasterizerOption.FillMode = D3D11_FILL_SOLID;
 		rasterizerOption.CullMode = D3D11_CULL_BACK;
-		auto RS = Renderer.RenderStateManager->GetOrCreateRasterizerState(rasterizerOption);
+		auto RS                   = Renderer.RenderStateManager->GetOrCreateRasterizerState(rasterizerOption);
 		Renderer.DefaultMaterial->SetRasterizerOption(rasterizerOption);
 		Renderer.DefaultMaterial->SetRasterizerState(RS);
 
 		FDepthStencilStateOption depthStencilOption;
-		depthStencilOption.DepthEnable = true;
+		depthStencilOption.DepthEnable    = true;
 		depthStencilOption.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		auto DSS = Renderer.RenderStateManager->GetOrCreateDepthStencilState(depthStencilOption);
+		auto DSS                          = Renderer.RenderStateManager->GetOrCreateDepthStencilState(depthStencilOption);
 		Renderer.DefaultMaterial->SetDepthStencilOption(depthStencilOption);
 		Renderer.DefaultMaterial->SetDepthStencilState(DSS);
 
@@ -62,7 +69,7 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 		if (SlotIndex >= 0)
 		{
 			Renderer.DefaultMaterial->RegisterParameter("BaseColor", SlotIndex, 0, 16);
-			float White[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			float White[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 			Renderer.DefaultMaterial->GetConstantBuffer(SlotIndex)->SetData(White, sizeof(White));
 		}
 
@@ -71,10 +78,10 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 	}
 
 	{
-		std::wstring TextureVSPath = ShaderDirW + L"SceneGeometry/TextureVertexShader.hlsl";
-		auto VS = FShaderMap::Get().GetOrCreateVertexShader(Device, TextureVSPath.c_str());
-		std::wstring TexturePSPath = ShaderDirW + L"SceneGeometry/TexturePixelShader.hlsl";
-		auto PS = FShaderMap::Get().GetOrCreatePixelShader(Device, TexturePSPath.c_str());
+		std::wstring TextureVSPath      = ShaderDirW + L"SceneGeometry/TextureVertexShader.hlsl";
+		auto         VS                 = FShaderMap::Get().GetOrCreateVertexShader(Device, TextureVSPath.c_str());
+		std::wstring TexturePSPath      = ShaderDirW + L"SceneGeometry/TexturePixelShader.hlsl";
+		auto         PS                 = FShaderMap::Get().GetOrCreatePixelShader(Device, TexturePSPath.c_str());
 		Renderer.DefaultTextureMaterial = std::make_shared<FMaterial>();
 		Renderer.DefaultTextureMaterial->SetOriginName("M_Default_Texture");
 		Renderer.DefaultTextureMaterial->SetVertexShader(VS);
@@ -83,14 +90,14 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 		FRasterizerStateOption rasterizerOption;
 		rasterizerOption.FillMode = D3D11_FILL_SOLID;
 		rasterizerOption.CullMode = D3D11_CULL_BACK;
-		auto RS = Renderer.RenderStateManager->GetOrCreateRasterizerState(rasterizerOption);
+		auto RS                   = Renderer.RenderStateManager->GetOrCreateRasterizerState(rasterizerOption);
 		Renderer.DefaultTextureMaterial->SetRasterizerOption(rasterizerOption);
 		Renderer.DefaultTextureMaterial->SetRasterizerState(RS);
 
 		FDepthStencilStateOption depthStencilOption;
-		depthStencilOption.DepthEnable = true;
+		depthStencilOption.DepthEnable    = true;
 		depthStencilOption.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		auto DSS = Renderer.RenderStateManager->GetOrCreateDepthStencilState(depthStencilOption);
+		auto DSS                          = Renderer.RenderStateManager->GetOrCreateDepthStencilState(depthStencilOption);
 		Renderer.DefaultTextureMaterial->SetDepthStencilOption(depthStencilOption);
 		Renderer.DefaultTextureMaterial->SetDepthStencilState(DSS);
 
@@ -98,11 +105,11 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 		if (SlotIndex >= 0)
 		{
 			Renderer.DefaultTextureMaterial->RegisterParameter("BaseColor", SlotIndex, 0, 16);
-			float White[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			float White[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 			Renderer.DefaultTextureMaterial->GetConstantBuffer(SlotIndex)->SetData(White, sizeof(White));
 
 			Renderer.DefaultTextureMaterial->RegisterParameter("UVScrollSpeed", SlotIndex, 16, 16);
-			float DefaultScroll[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			float DefaultScroll[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 			Renderer.DefaultTextureMaterial->GetConstantBuffer(SlotIndex)->SetData(DefaultScroll, sizeof(DefaultScroll), 16);
 		}
 
@@ -117,10 +124,10 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 	}
 
 	std::filesystem::path SubUVTexturePath = FPaths::ContentDir() / FString("Textures/SubUVDino.png");
-	Renderer.SubUVFeature = std::make_unique<FSubUVRenderFeature>();
+	Renderer.SubUVFeature                  = std::make_unique<FSubUVRenderFeature>();
 	if (!Renderer.SubUVFeature || !Renderer.SubUVFeature->Initialize(Renderer, SubUVTexturePath.wstring()))
 	{
-		MessageBox(0, L"SubUVRenderer Initialize Failed.", 0, 0);
+		MessageBox(nullptr, L"SubUVRenderer Initialize Failed.", nullptr, 0);
 		return false;
 	}
 
@@ -142,11 +149,17 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 		return false;
 	}
 
-	Renderer.FogFeature = std::make_unique<FFogRenderFeature>();
-	Renderer.OutlineFeature = std::make_unique<FOutlineRenderFeature>();
+	Renderer.FogFeature       = std::make_unique<FFogRenderFeature>();
+	Renderer.OutlineFeature   = std::make_unique<FOutlineRenderFeature>();
 	Renderer.DebugLineFeature = std::make_unique<FDebugLineRenderFeature>();
-	Renderer.FireBallFeature = std::make_unique<FFireBallRenderFeature>();
+	Renderer.FireBallFeature  = std::make_unique<FFireBallRenderFeature>();
 	if (!Renderer.FireBallFeature)
+	{
+		return false;
+	}
+
+	Renderer.FToneMappingFeature = std::make_unique<FToneMappingRenderFeature>();
+	if (!Renderer.FToneMappingFeature)
 	{
 		return false;
 	}
@@ -158,7 +171,7 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 	}
 
 	std::filesystem::path FolderIconPath = FPaths::AssetDir() / FString("Textures/FolderIcon.png");
-	std::filesystem::path FileIconPath = FPaths::AssetDir() / FString("Textures/FileIcon.png");
+	std::filesystem::path FileIconPath   = FPaths::AssetDir() / FString("Textures/FileIcon.png");
 	Renderer.CreateTextureFromSTB(Device, FolderIconPath, &Renderer.FolderIconSRV);
 	Renderer.CreateTextureFromSTB(Device, FileIconPath, &Renderer.FileIconSRV);
 	if (!Renderer.DecalTextureCache->InitializeFallbackTexture(Device))
@@ -171,16 +184,50 @@ bool FRendererResourceBootstrap::Initialize(FRenderer& Renderer)
 
 void FRendererResourceBootstrap::Release(FRenderer& Renderer)
 {
-	if (Renderer.FogFeature) Renderer.FogFeature->Release();
-	if (Renderer.OutlineFeature) Renderer.OutlineFeature->Release();
-	if (Renderer.DebugLineFeature) Renderer.DebugLineFeature->Release();
-	if (Renderer.TextFeature) Renderer.TextFeature->Release();
-	if (Renderer.SubUVFeature) Renderer.SubUVFeature->Release();
-	if (Renderer.BillboardFeature) Renderer.BillboardFeature->Release();
-	if (Renderer.DecalFeature) Renderer.DecalFeature->Release();
-	if (Renderer.VolumeDecalFeature) Renderer.VolumeDecalFeature->Release();
-	if (Renderer.FireBallFeature) Renderer.FireBallFeature->Release();
-	if (Renderer.FXAAFeature) Renderer.FXAAFeature->Release();
+	if (Renderer.FogFeature)
+	{
+		Renderer.FogFeature->Release();
+	}
+	if (Renderer.OutlineFeature)
+	{
+		Renderer.OutlineFeature->Release();
+	}
+	if (Renderer.DebugLineFeature)
+	{
+		Renderer.DebugLineFeature->Release();
+	}
+	if (Renderer.TextFeature)
+	{
+		Renderer.TextFeature->Release();
+	}
+	if (Renderer.SubUVFeature)
+	{
+		Renderer.SubUVFeature->Release();
+	}
+	if (Renderer.BillboardFeature)
+	{
+		Renderer.BillboardFeature->Release();
+	}
+	if (Renderer.DecalFeature)
+	{
+		Renderer.DecalFeature->Release();
+	}
+	if (Renderer.VolumeDecalFeature)
+	{
+		Renderer.VolumeDecalFeature->Release();
+	}
+	if (Renderer.FireBallFeature)
+	{
+		Renderer.FireBallFeature->Release();
+	}
+	if (Renderer.FToneMappingFeature)
+	{
+		Renderer.FToneMappingFeature->Release();
+	}
+	if (Renderer.FXAAFeature)
+	{
+		Renderer.FXAAFeature->Release();
+	}
 	Renderer.OutlineFeature.reset();
 	Renderer.DebugLineFeature.reset();
 	Renderer.FogFeature.reset();
@@ -190,16 +237,37 @@ void FRendererResourceBootstrap::Release(FRenderer& Renderer)
 	Renderer.DecalFeature.reset();
 	Renderer.VolumeDecalFeature.reset();
 	Renderer.FireBallFeature.reset();
+	Renderer.FToneMappingFeature.reset();
 	Renderer.FXAAFeature.reset();
 	Renderer.ShaderManager.Release();
 	FShaderMap::Get().Clear();
 	FMaterialManager::Get().Clear();
-	if (Renderer.NormalSampler) { Renderer.NormalSampler->Release(); Renderer.NormalSampler = nullptr; }
+	if (Renderer.NormalSampler)
+	{
+		Renderer.NormalSampler->Release();
+		Renderer.NormalSampler = nullptr;
+	}
 	Renderer.DefaultMaterial.reset();
 	Renderer.DefaultTextureMaterial.reset();
 	Renderer.DecalTextureCache->Release();
-	if (Renderer.FolderIconSRV) { Renderer.FolderIconSRV->Release(); Renderer.FolderIconSRV = nullptr; }
-	if (Renderer.FileIconSRV) { Renderer.FileIconSRV->Release(); Renderer.FileIconSRV = nullptr; }
-	if (Renderer.FrameConstantBuffer) { Renderer.FrameConstantBuffer->Release(); Renderer.FrameConstantBuffer = nullptr; }
-	if (Renderer.ObjectConstantBuffer) { Renderer.ObjectConstantBuffer->Release(); Renderer.ObjectConstantBuffer = nullptr; }
+	if (Renderer.FolderIconSRV)
+	{
+		Renderer.FolderIconSRV->Release();
+		Renderer.FolderIconSRV = nullptr;
+	}
+	if (Renderer.FileIconSRV)
+	{
+		Renderer.FileIconSRV->Release();
+		Renderer.FileIconSRV = nullptr;
+	}
+	if (Renderer.FrameConstantBuffer)
+	{
+		Renderer.FrameConstantBuffer->Release();
+		Renderer.FrameConstantBuffer = nullptr;
+	}
+	if (Renderer.ObjectConstantBuffer)
+	{
+		Renderer.ObjectConstantBuffer->Release();
+		Renderer.ObjectConstantBuffer = nullptr;
+	}
 }

@@ -31,6 +31,17 @@ private:
 		FGPUTexture2D& OutTexture,
 		bool           bCreateUAV = false,
 		uint32         MipLevels  = 1);
+	static bool CreateColorTexture(
+		ID3D11Device*  Device,
+		uint32         Width,
+		uint32         Height,
+		DXGI_FORMAT    TextureFormat,
+		DXGI_FORMAT    SRVFormat,
+		DXGI_FORMAT    RTVFormat,
+		DXGI_FORMAT    UAVFormat,
+		FGPUTexture2D& OutTexture,
+		bool           bCreateUAV = false,
+		uint32         MipLevels  = 1);
 	static bool CreateDepthTexture(
 		ID3D11Device*  Device,
 		uint32         Width,

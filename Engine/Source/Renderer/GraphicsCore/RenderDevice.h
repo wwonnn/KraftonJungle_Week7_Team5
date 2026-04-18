@@ -7,6 +7,7 @@ class ENGINE_API FRenderDevice
 {
 public:
 	FRenderDevice() = default;
+
 	~FRenderDevice()
 	{
 		Release();
@@ -28,8 +29,8 @@ public:
 
 		Viewport.TopLeftX = 0.0f;
 		Viewport.TopLeftY = 0.0f;
-		Viewport.Width = static_cast<float>(Width);
-		Viewport.Height = static_cast<float>(Height);
+		Viewport.Width    = static_cast<float>(Width);
+		Viewport.Height   = static_cast<float>(Height);
 		Viewport.MinDepth = 0.0f;
 		Viewport.MaxDepth = 1.0f;
 		return true;
@@ -59,8 +60,8 @@ public:
 			return;
 		}
 
-		const UINT SyncInterval = bVSyncEnabled ? 1u : 0u;
-		const HRESULT Hr = SwapChain->Present(SyncInterval, 0);
+		const UINT    SyncInterval = bVSyncEnabled ? 1u : 0u;
+		const HRESULT Hr           = SwapChain->Present(SyncInterval, 0);
 		if (Hr == DXGI_STATUS_OCCLUDED)
 		{
 			bSwapChainOccluded = true;
@@ -70,6 +71,7 @@ public:
 	// 스왑체인 RTV/DSV와 기본 뷰포트를 출력 머저에 바인딩한다.
 	void BindSwapChainRTV()
 	{
+		ID3D11RenderTargetView* PresentRTV = PresentationRenderTargetView ? PresentationRenderTargetView : RenderTargetView;
 		if (RenderTargetView && DeviceContext)
 		{
 			DeviceContext->OMSetRenderTargets(1, &RenderTargetView, DepthStencilView);
@@ -123,10 +125,16 @@ public:
 			DepthStencilTexture = nullptr;
 		}
 
+		if (PresentationRenderTargetView)
+		{
+			PresentationRenderTargetView->Release();
+			PresentationRenderTargetView = nullptr;
+		}
+
 		SwapChain->ResizeBuffers(0, Width, Height, DXGI_FORMAT_UNKNOWN, 0);
 		if (CreateRenderTargetAndDepthStencil(Width, Height))
 		{
-			Viewport.Width = static_cast<float>(Width);
+			Viewport.Width  = static_cast<float>(Width);
 			Viewport.Height = static_cast<float>(Height);
 		}
 	}
@@ -154,6 +162,11 @@ public:
 			RenderTargetView->Release();
 			RenderTargetView = nullptr;
 		}
+		if (PresentationRenderTargetView)
+		{
+			PresentationRenderTargetView->Release();
+			PresentationRenderTargetView = nullptr;
+		}
 		if (SwapChain)
 		{
 			SwapChain->Release();
@@ -172,41 +185,86 @@ public:
 	}
 
 	// Present 시 VSync 사용 여부를 설정한다.
-	void SetVSync(bool bEnable) { bVSyncEnabled = bEnable; }
+	void SetVSync(bool bEnable)
+	{
+		bVSyncEnabled = bEnable;
+	}
+
 	// 현재 VSync 설정 상태를 반환한다.
-	bool IsVSyncEnabled() const { return bVSyncEnabled; }
+	bool IsVSyncEnabled() const
+	{
+		return bVSyncEnabled;
+	}
 
 	// D3D11 디바이스 접근자다.
-	ID3D11Device* GetDevice() const { return Device; }
+	ID3D11Device* GetDevice() const
+	{
+		return Device;
+	}
+
 	// D3D11 디바이스 컨텍스트 접근자다.
-	ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext; }
+	ID3D11DeviceContext* GetDeviceContext() const
+	{
+		return DeviceContext;
+	}
+
 	// 스왑체인 접근자다.
-	IDXGISwapChain* GetSwapChain() const { return SwapChain; }
+	IDXGISwapChain* GetSwapChain() const
+	{
+		return SwapChain;
+	}
+
 	// 백버퍼 RTV 접근자다.
-	ID3D11RenderTargetView* GetRenderTargetView() const { return RenderTargetView; }
+	ID3D11RenderTargetView* GetRenderTargetView() const
+	{
+		return PresentationRenderTargetView ? PresentationRenderTargetView : RenderTargetView;
+		// return RenderTargetView;
+	}
+
+	// 선형 백버퍼 RTV 접근자다.
+	ID3D11RenderTargetView* GetLinearRenderTargetView() const
+	{
+		return RenderTargetView;
+	}
+
 	// 백버퍼 DSV 접근자다.
-	ID3D11DepthStencilView* GetDepthStencilView() const { return DepthStencilView; }
+	ID3D11DepthStencilView* GetDepthStencilView() const
+	{
+		return DepthStencilView;
+	}
+
 	// 백버퍼 깊이 텍스처 SRV 접근자다.
-	ID3D11ShaderResourceView* GetDepthShaderResourceView() const { return DepthShaderResourceView; }
+	ID3D11ShaderResourceView* GetDepthShaderResourceView() const
+	{
+		return DepthShaderResourceView;
+	}
+
 	// 렌더 대상 윈도우 핸들을 반환한다.
-	HWND GetHwnd() const { return Hwnd; }
+	HWND GetHwnd() const
+	{
+		return Hwnd;
+	}
+
 	// 백버퍼 전체를 덮는 기본 뷰포트를 반환한다.
-	const D3D11_VIEWPORT& GetViewport() const { return Viewport; }
+	const D3D11_VIEWPORT& GetViewport() const
+	{
+		return Viewport;
+	}
 
 private:
 	// D3D11 디바이스, 컨텍스트, 스왑체인을 생성한다.
 	bool CreateDeviceAndSwapChain(HWND InHwnd, int32 Width, int32 Height)
 	{
 		DXGI_SWAP_CHAIN_DESC SwapChainDesc = {};
-		SwapChainDesc.BufferDesc.Width = static_cast<UINT>(Width);
-		SwapChainDesc.BufferDesc.Height = static_cast<UINT>(Height);
-		SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		SwapChainDesc.SampleDesc.Count = 1;
-		SwapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		SwapChainDesc.BufferCount = 2;
-		SwapChainDesc.OutputWindow = InHwnd;
-		SwapChainDesc.Windowed = TRUE;
-		SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+		SwapChainDesc.BufferDesc.Width     = static_cast<UINT>(Width);
+		SwapChainDesc.BufferDesc.Height    = static_cast<UINT>(Height);
+		SwapChainDesc.BufferDesc.Format    = DXGI_FORMAT_R8G8B8A8_UNORM;
+		SwapChainDesc.SampleDesc.Count     = 1;
+		SwapChainDesc.BufferUsage          = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+		SwapChainDesc.BufferCount          = 2;
+		SwapChainDesc.OutputWindow         = InHwnd;
+		SwapChainDesc.Windowed             = TRUE;
+		SwapChainDesc.SwapEffect           = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
 		UINT CreateDeviceFlags = 0;
 #ifdef _DEBUG
@@ -214,7 +272,7 @@ private:
 #endif
 
 		D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_11_0;
-		const HRESULT Hr = D3D11CreateDeviceAndSwapChain(
+		const HRESULT     Hr           = D3D11CreateDeviceAndSwapChain(
 			nullptr,
 			D3D_DRIVER_TYPE_HARDWARE,
 			nullptr,
@@ -246,28 +304,40 @@ private:
 		}
 
 		ID3D11Texture2D* BackBuffer = nullptr;
-		HRESULT Hr = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&BackBuffer));
+		HRESULT          Hr         = SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&BackBuffer));
 		if (FAILED(Hr) || !BackBuffer)
 		{
 			return false;
 		}
 
+		// Clear용 Linear RTV
 		Hr = Device->CreateRenderTargetView(BackBuffer, nullptr, &RenderTargetView);
+		if (FAILED(Hr) || !RenderTargetView)
+		{
+			BackBuffer->Release();
+			return false;
+		}
+
+		D3D11_RENDER_TARGET_VIEW_DESC PresetRTVDesc = {};
+		PresetRTVDesc.Format                        = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		PresetRTVDesc.ViewDimension                 = D3D11_RTV_DIMENSION_TEXTURE2D;
+		PresetRTVDesc.Texture2D.MipSlice            = 0;
+		Hr                                          = Device->CreateRenderTargetView(BackBuffer, &PresetRTVDesc, &PresentationRenderTargetView);
 		BackBuffer->Release();
-		if (FAILED(Hr))
+		if (FAILED(Hr) || !PresentationRenderTargetView)
 		{
 			return false;
 		}
 
 		D3D11_TEXTURE2D_DESC DepthDesc = {};
-		DepthDesc.Width = static_cast<UINT>(Width);
-		DepthDesc.Height = static_cast<UINT>(Height);
-		DepthDesc.MipLevels = 1;
-		DepthDesc.ArraySize = 1;
-		DepthDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		DepthDesc.SampleDesc.Count = 1;
-		DepthDesc.Usage = D3D11_USAGE_DEFAULT;
-		DepthDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		DepthDesc.Width                = static_cast<UINT>(Width);
+		DepthDesc.Height               = static_cast<UINT>(Height);
+		DepthDesc.MipLevels            = 1;
+		DepthDesc.ArraySize            = 1;
+		DepthDesc.Format               = DXGI_FORMAT_R24G8_TYPELESS;
+		DepthDesc.SampleDesc.Count     = 1;
+		DepthDesc.Usage                = D3D11_USAGE_DEFAULT;
+		DepthDesc.BindFlags            = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
 		Hr = Device->CreateTexture2D(&DepthDesc, nullptr, &DepthStencilTexture);
 		if (FAILED(Hr) || !DepthStencilTexture)
@@ -276,33 +346,32 @@ private:
 		}
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC DSVDesc = {};
-		DSVDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		DSVDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-		Hr = Device->CreateDepthStencilView(DepthStencilTexture, &DSVDesc, &DepthStencilView);
+		DSVDesc.Format                        = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		DSVDesc.ViewDimension                 = D3D11_DSV_DIMENSION_TEXTURE2D;
+		Hr                                    = Device->CreateDepthStencilView(DepthStencilTexture, &DSVDesc, &DepthStencilView);
 		if (FAILED(Hr))
 		{
 			return false;
 		}
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC SRVDesc = {};
-		SRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-		SRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-		SRVDesc.Texture2D.MipLevels = 1;
-		Hr = Device->CreateShaderResourceView(DepthStencilTexture, &SRVDesc, &DepthShaderResourceView);
+		SRVDesc.Format                          = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		SRVDesc.ViewDimension                   = D3D11_SRV_DIMENSION_TEXTURE2D;
+		SRVDesc.Texture2D.MipLevels             = 1;
+		Hr                                      = Device->CreateShaderResourceView(DepthStencilTexture, &SRVDesc, &DepthShaderResourceView);
 		return SUCCEEDED(Hr);
 	}
 
-private:
-	HWND Hwnd = nullptr;
-	ID3D11Device* Device = nullptr;
-	ID3D11DeviceContext* DeviceContext = nullptr;
-	IDXGISwapChain* SwapChain = nullptr;
-	ID3D11RenderTargetView* RenderTargetView = nullptr;
-	ID3D11Texture2D* DepthStencilTexture = nullptr;
-	ID3D11DepthStencilView* DepthStencilView = nullptr;
-	ID3D11ShaderResourceView* DepthShaderResourceView = nullptr;
-	D3D11_VIEWPORT Viewport = {};
-	bool bSwapChainOccluded = false;
-	bool bVSyncEnabled = false;
+	HWND                      Hwnd                         = nullptr;
+	ID3D11Device*             Device                       = nullptr;
+	ID3D11DeviceContext*      DeviceContext                = nullptr;
+	IDXGISwapChain*           SwapChain                    = nullptr;
+	ID3D11RenderTargetView*   RenderTargetView             = nullptr;
+	ID3D11RenderTargetView*   PresentationRenderTargetView = nullptr;
+	ID3D11Texture2D*          DepthStencilTexture          = nullptr;
+	ID3D11DepthStencilView*   DepthStencilView             = nullptr;
+	ID3D11ShaderResourceView* DepthShaderResourceView      = nullptr;
+	D3D11_VIEWPORT            Viewport                     = {};
+	bool                      bSwapChainOccluded           = false;
+	bool                      bVSyncEnabled                = false;
 };
-
