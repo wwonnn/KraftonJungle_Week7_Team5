@@ -578,4 +578,115 @@ float4 VisualizeClusterLightCulling(float4 svPosition, float3 worldPos)
     return float4(color, 1.0f);
 }
 
+float QuantizeToonDiffuse(float value, float bandCount)
+{
+	value = saturate(value);
+
+	float steps = max(bandCount - 1.0f, 1.0f);
+	float bandIndex = min(steps, floor(value * bandCount));
+
+	return bandIndex / steps;
+}
+
+float QuantizeToonSpecular(float value, float threshold)
+{
+	return step(threshold, saturate(value));
+}
+
+void ComputeLocalLightToonContributions(
+	FLocalLightGPU light,
+	float3 worldPos,
+	float3 N,
+	float3 V,
+	float bandCount,
+	float specThreshold,
+	out float3 diffuseLighting,
+	out float3 specularLighting)
+{
+	diffuseLighting = 0.0f.xxx;
+	specularLighting = 0.0f.xxx;
+
+	float3 toLight = light.PositionRange.xyz - worldPos;
+	float distance = length(toLight);
+	if (distance > light.PositionRange.w)
+	{
+		return;
+	}
+
+	float3 L = toLight / max(distance, 1.0e-5f);
+	float attenuation = CalculateAttenuation(distance, light.PositionRange.w);
+	float intensity = 1.0f;
+
+	const uint lightClass = (uint)light.DirectionType.w;
+
+	if (lightClass == LIGHT_CLASS_SPOT)
+	{
+		float theta = dot(L, normalize(-light.DirectionType.xyz));
+		float innerCutoff = light.AngleParams.x;
+		float outerCutoff = light.AngleParams.y;
+		intensity = saturate((theta - outerCutoff) / max(innerCutoff - outerCutoff, 1.0e-5f));
+
+		if (intensity <= 0.0f)
+		{
+			return;
+		}
+	}
+	else if (lightClass != LIGHT_CLASS_POINT)
+	{
+		return;
+	}
+
+	float diff = max(dot(N, L), 0.0f);
+	float toonDiff = QuantizeToonDiffuse(diff, bandCount);
+	diffuseLighting = light.ColorIntensity.xyz * light.ColorIntensity.w * toonDiff * attenuation * intensity;
+
+	float3 H = normalize(L + V);
+	float spec = pow(max(dot(N, H), 0.0f), Shininess);
+	float toonSpec = QuantizeToonSpecular(spec, specThreshold);
+	specularLighting = light.ColorIntensity.xyz * light.ColorIntensity.w * toonSpec * attenuation * intensity;
+}
+
+void ComputeClusteredLocalLightingToonContributions(
+	float4 svPosition,
+	float3 worldPos,
+	float3 N,
+	float3 V,
+	float bandCount,
+	float specThreshold,
+	out float3 diffuseLighting,
+	out float3 specularLighting)
+{
+	diffuseLighting = 0.0f.xxx;
+	specularLighting = 0.0f.xxx;
+
+	if (LightingEnabled == 0 || LocalLightCount == 0)
+	{
+		return;
+	}
+
+	FLightClusterHeader header = GetClusterLightHeader(svPosition, worldPos);
+
+	[loop]
+	for (uint i = 0; i < header.Count; ++i)
+	{
+		uint lightIndex = ClusterLightIndices[header.Offset + i];
+		if (lightIndex < LocalLightCount)
+		{
+			float3 lightDiffuse;
+			float3 lightSpecular;
+			ComputeLocalLightToonContributions(
+				LocalLights[lightIndex],
+				worldPos,
+				N,
+				V,
+				bandCount,
+				specThreshold,
+				lightDiffuse,
+				lightSpecular);
+
+			diffuseLighting += lightDiffuse;
+			specularLighting += lightSpecular;
+		}
+	}
+}
 #endif

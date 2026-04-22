@@ -115,6 +115,59 @@ float4 main(VS_OUTPUT Input) : SV_TARGET
 	finalColor += EmissiveTerm;
 	return float4(finalColor, baseColor.a);
 	
+#elif LIGHTING_MODEL_TOON
+
+	const float ToonBandCount = 3.0f;
+	const float ToonSpecThreshold = 0.99f;
+	const float ToonRimThreshold = 0.70f;
+	const float ToonRimStrength = 0.2f;
+	const float ToonAmbientScale = 0.7f;
+
+	float3 diffuseLighting = 0.0f.xxx;
+	float3 specularLighting = 0.0f.xxx;
+	float3 localDiffuseLighting = 0.0f.xxx;
+	float3 localSpecularLighting = 0.0f.xxx;
+
+	if (AmbientEnabled != 0)
+	{
+		diffuseLighting += CalculateAmbientLight(Ambient).rgb * ToonAmbientScale;
+	}
+
+	if (DirectionalLightCount > 0)
+	{
+		float3 L_dir = normalize(-Directional.DirectionEtc.xyz);
+		float3 H_dir = normalize(L_dir + V);
+
+		float diff = max(0.0f, dot(N, L_dir));
+		float toonDiff = QuantizeToonDiffuse(diff, ToonBandCount);
+		diffuseLighting += Directional.ColorIntensity.xyz * Directional.ColorIntensity.w * toonDiff;
+
+		float spec = pow(max(0.0f, dot(N, H_dir)), max(Shininess, 1.0f));
+		float toonSpec = QuantizeToonSpecular(spec, ToonSpecThreshold);
+		specularLighting += Directional.ColorIntensity.xyz * Directional.ColorIntensity.w * toonSpec;
+	}
+
+	ComputeClusteredLocalLightingToonContributions(
+		Input.Position,
+		Input.WorldPosition,
+		N,
+		V,
+		ToonBandCount,
+		ToonSpecThreshold,
+		localDiffuseLighting,
+		localSpecularLighting);
+
+	diffuseLighting += localDiffuseLighting;
+	specularLighting += localSpecularLighting;
+
+	float rim = 1.0f - saturate(dot(N, V));
+	rim = step(ToonRimThreshold, rim) * ToonRimStrength;
+	float3 rimLighting = baseColor.rgb * rim;
+
+	float3 finalColor = baseColor.rgb * diffuseLighting + specularLighting + rimLighting;
+	finalColor += EmissiveTerm;
+	return float4(finalColor, baseColor.a);
+	
 #endif
 
 	return float4(baseColor.rgb + EmissiveTerm, baseColor.a);

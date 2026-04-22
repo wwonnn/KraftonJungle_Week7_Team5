@@ -362,9 +362,10 @@ void FLightRenderFeature::Release()
 
 	for (uint32 VariantIndex = 0; VariantIndex < ShaderVariantCount; ++VariantIndex)
 	{
-		GouraudVariants[VariantIndex] = {};
-		LambertVariants[VariantIndex] = {};
-		PhongVariants[VariantIndex] = {};
+		GouraudVariants[VariantIndex]     = {};
+		LambertVariants[VariantIndex]     = {};
+		PhongVariants[VariantIndex]       = {};
+		ToonVariants[VariantIndex]        = {};
 		WorldNormalVariants[VariantIndex] = {};
 	}
 	SafeRelease(DepthSampler);
@@ -381,6 +382,7 @@ std::shared_ptr<FVertexShaderHandle> FLightRenderFeature::GetCurrentVSHandle(boo
 	{
 	case ELightingModel::Lambert: return LambertVariants[Variant].VertexHandle;
 	case ELightingModel::Phong: return PhongVariants[Variant].VertexHandle;
+	case ELightingModel::Toon: return ToonVariants[Variant].VertexHandle;
 	default: return GouraudVariants[Variant].VertexHandle;
 	}
 }
@@ -396,6 +398,7 @@ std::shared_ptr<FPixelShaderHandle> FLightRenderFeature::GetCurrentPSHandle(bool
 	{
 	case ELightingModel::Lambert: return LambertVariants[Variant].PixelHandle;
 	case ELightingModel::Phong: return PhongVariants[Variant].PixelHandle;
+	case ELightingModel::Toon: return ToonVariants[Variant].PixelHandle;
 	default: return GouraudVariants[Variant].PixelHandle;
 	}
 }
@@ -444,21 +447,21 @@ bool FLightRenderFeature::Initialize(FRenderer& Renderer)
 	if (!LightCullingCS)
 	{
 		FShaderRecipe Recipe = {};
-		Recipe.Stage = EShaderStage::Compute;
-		Recipe.SourcePath = FPaths::ShaderDir().wstring() + L"SceneLighting/LightCullingCS.hlsl";
-		Recipe.EntryPoint = "main";
-		Recipe.Target = "cs_5_0";
-		LightCullingCS = FShaderRegistry::Get().GetOrCreateComputeShaderHandle(Device, Recipe);
+		Recipe.Stage         = EShaderStage::Compute;
+		Recipe.SourcePath    = FPaths::ShaderDir().wstring() + L"SceneLighting/LightCullingCS.hlsl";
+		Recipe.EntryPoint    = "main";
+		Recipe.Target        = "cs_5_0";
+		LightCullingCS       = FShaderRegistry::Get().GetOrCreateComputeShaderHandle(Device, Recipe);
 	}
 
 	if (!TileDepthBoundsCS)
 	{
 		FShaderRecipe Recipe = {};
-		Recipe.Stage = EShaderStage::Compute;
-		Recipe.SourcePath = FPaths::ShaderDir().wstring() + L"SceneLighting/TileDepthBoundsCS.hlsl";
-		Recipe.EntryPoint = "main";
-		Recipe.Target = "cs_5_0";
-		TileDepthBoundsCS = FShaderRegistry::Get().GetOrCreateComputeShaderHandle(Device, Recipe);
+		Recipe.Stage         = EShaderStage::Compute;
+		Recipe.SourcePath    = FPaths::ShaderDir().wstring() + L"SceneLighting/TileDepthBoundsCS.hlsl";
+		Recipe.EntryPoint    = "main";
+		Recipe.Target        = "cs_5_0";
+		TileDepthBoundsCS    = FShaderRegistry::Get().GetOrCreateComputeShaderHandle(Device, Recipe);
 	}
 
 	if (!DepthSampler)
@@ -495,23 +498,23 @@ bool FLightRenderFeature::CompileShaderVariants(FRenderer& Renderer)
 	auto BuildVertexRecipe = [&](const std::wstring& Path, const std::vector<FShaderMacroDesc>& Macros) -> FShaderRecipe
 	{
 		FShaderRecipe Recipe = {};
-		Recipe.Stage = EShaderStage::Vertex;
-		Recipe.SourcePath = Path;
-		Recipe.EntryPoint = "main";
-		Recipe.Target = "vs_5_0";
-		Recipe.LayoutType = EVertexLayoutType::MeshVertex;
-		Recipe.Macros = Macros;
+		Recipe.Stage         = EShaderStage::Vertex;
+		Recipe.SourcePath    = Path;
+		Recipe.EntryPoint    = "main";
+		Recipe.Target        = "vs_5_0";
+		Recipe.LayoutType    = EVertexLayoutType::MeshVertex;
+		Recipe.Macros        = Macros;
 		return Recipe;
 	};
 
 	auto BuildPixelRecipe = [&](const std::wstring& Path, const std::vector<FShaderMacroDesc>& Macros) -> FShaderRecipe
 	{
 		FShaderRecipe Recipe = {};
-		Recipe.Stage = EShaderStage::Pixel;
-		Recipe.SourcePath = Path;
-		Recipe.EntryPoint = "main";
-		Recipe.Target = "ps_5_0";
-		Recipe.Macros = Macros;
+		Recipe.Stage         = EShaderStage::Pixel;
+		Recipe.SourcePath    = Path;
+		Recipe.EntryPoint    = "main";
+		Recipe.Target        = "ps_5_0";
+		Recipe.Macros        = Macros;
 		return Recipe;
 	};
 
@@ -540,6 +543,14 @@ bool FLightRenderFeature::CompileShaderVariants(FRenderer& Renderer)
 			Device,
 			BuildPixelRecipe(PSPath, { { "LIGHTING_MODEL_PHONG", "1" }, { "HAS_NORMAL_MAP", bHasNormalMap ? "1" : "0" } }));
 
+		ToonVariants[VariantIndex].VertexHandle = FShaderRegistry::Get().GetOrCreateVertexShaderHandle(
+			Device,
+			BuildVertexRecipe(VSPath, { { "LIGHTING_MODEL_TOON", "1" } }));
+
+		ToonVariants[VariantIndex].PixelHandle = FShaderRegistry::Get().GetOrCreatePixelShaderHandle(
+			Device,
+			BuildPixelRecipe(PSPath, { { "LIGHTING_MODEL_TOON", "1" }, { "HAS_NORMAL_MAP", bHasNormalMap ? "1" : "0" } }));
+
 		WorldNormalVariants[VariantIndex].VertexHandle = FShaderRegistry::Get().GetOrCreateVertexShaderHandle(
 			Device,
 			BuildVertexRecipe(VSPath, { { "VIEWMODE_WORLD_NORMAL", "1" } }));
@@ -553,6 +564,8 @@ bool FLightRenderFeature::CompileShaderVariants(FRenderer& Renderer)
 			|| !LambertVariants[VariantIndex].PixelHandle
 			|| !PhongVariants[VariantIndex].VertexHandle
 			|| !PhongVariants[VariantIndex].PixelHandle
+			|| !ToonVariants[VariantIndex].VertexHandle
+			|| !ToonVariants[VariantIndex].PixelHandle
 			|| !WorldNormalVariants[VariantIndex].VertexHandle
 			|| !WorldNormalVariants[VariantIndex].PixelHandle)
 		{

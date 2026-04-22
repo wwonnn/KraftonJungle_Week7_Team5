@@ -87,6 +87,9 @@ bool FSceneRenderer::RenderSceneView(
 	case ERenderMode::LightCullingHeatmap:
 		Renderer.GetLightFeature()->SetLightingModel(ELightingModel::Phong);
 		break;
+	case ERenderMode::Lit_Toon:
+		Renderer.GetLightFeature()->SetLightingModel(ELightingModel::Toon);
+		break;
 	default:
 		Renderer.GetLightFeature()->SetLightingModel(ELightingModel::Gouraud);
 		break;
