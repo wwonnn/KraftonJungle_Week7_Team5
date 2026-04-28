@@ -379,7 +379,7 @@ namespace
 		uint32 CascadeCount = DirLight->GetCascadeCount();
 		CascadeCount = (std::min)(CascadeCount, ShadowConfig::MaxDirCascade);
 
-		TArray<float> FrustumSplits = FCasCade::CalculateCascadeSplits(CascadeCount, View.NearZ, View.FarZ, DirLight->GetSplitLambda());
+		TArray<float> FrustumSplits = FCasCade::CalculateCascadeSplits(CascadeCount, View.NearZ, DirLight->GetShadowFarZ(), DirLight->GetSplitLambda());
 		
 		if (FrustumSplits.size() < 2)
 		{

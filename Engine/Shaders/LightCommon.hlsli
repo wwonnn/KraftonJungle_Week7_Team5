@@ -173,9 +173,9 @@ float ViewDepthToDeviceDepth(float viewDepth)
 
 	return saturate((FarZ - (NearZ * FarZ) / max(clampedViewDepth, NearZ)) / max(FarZ - NearZ, 1.0e-6f));
 }
-float3 ApplyCSMDebugOverlay(float3 worldPos, float3 cameraPos, float4 splits, float3 baseColor)
+
+float3 ApplyCSMDebugOverlay(float viewDepth, float4 splits, float3 baseColor)
 {
-    float viewDepth = length(cameraPos - worldPos);
     uint cascadeIndex = 0;
 	
     if (viewDepth > splits.x) cascadeIndex = 1;
@@ -189,7 +189,6 @@ float3 ApplyCSMDebugOverlay(float3 worldPos, float3 cameraPos, float4 splits, fl
         float3(0.2f, 0.2f, 1.0f),
         float3(1.0f, 1.0f, 0.2f) 
     };
-	
     return baseColor * 0.2f + debugColors[cascadeIndex] * 0.8f;
 }
 

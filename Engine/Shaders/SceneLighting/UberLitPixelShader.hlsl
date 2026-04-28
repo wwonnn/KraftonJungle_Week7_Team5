@@ -35,7 +35,26 @@ float4 main(VS_OUTPUT Input) : SV_TARGET
 	}
     if (VisualizationMode == LIGHT_VISUALIZATION_CSM_CASCADE)
     {
-        float3 debugOverlay = ApplyCSMDebugOverlay(Input.WorldPosition, CameraPosition.xyz, Directional.CascadeSplits, TextureColor.rgb);
+#if HAS_NORMAL_MAP
+        float3 N = GetNormalFromMap(NormalMap, Sampler, Input.Normal, Input.Tangent, Input.Bitangent, Input.UV);
+#else
+        float3 N = normalize(Input.Normal);
+#endif
+		
+        float3 L_dir = normalize(-Directional.DirectionEtc.xyz);
+        float viewDepth = mul(float4(Input.WorldPosition, 1.0f), ClusterView).x;
+        
+        float NdotL = dot(N, L_dir);
+        float shadow = 0.0f;
+        
+        if (NdotL > 0.0f)
+        {
+            shadow = EvaluateDirectionalShadow(0, Input.WorldPosition, N, L_dir, viewDepth);
+        }
+		
+        float3 debugOverlay = ApplyCSMDebugOverlay(viewDepth, Directional.CascadeSplits, TextureColor.rgb);
+        debugOverlay *= max(shadow, 0.2f);
+
         return float4(debugOverlay, 1.0f);
     }
 
