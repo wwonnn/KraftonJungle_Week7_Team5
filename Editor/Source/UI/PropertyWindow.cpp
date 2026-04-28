@@ -2771,20 +2771,33 @@ void FPropertyWindow::DrawLightComponentDetails(ULightComponent* LightComponent,
 		ImGui::Text("Debug Slice");
 		ImGui::NextColumn();
 
-		const TArray<uint32>& AvailableSlices = ShadowFeature->GetDebugAvailableSlices();
+		bIsDirectional = SelectedComponent && SelectedComponent->IsA(UDirectionalLightComponent::StaticClass());
+		bool bIsLocal = SelectedComponent && (SelectedComponent->IsA(USpotLightComponent::StaticClass()) || SelectedComponent->IsA(UPointLightComponent::StaticClass()));
+		AActor* SelectedOwner = SelectedComponent ? SelectedComponent->GetOwner() : nullptr;
 
-		if (AvailableSlices.empty())
+		std::vector<const FShadowViewRenderItem*> MyLightViews;
+		const auto& AllViews = bIsDirectional ? ShadowFeature->GetLastDirectionalShadowViews() : ShadowFeature->GetLastLocalShadowViews();
+
+		for (const auto& View : AllViews)
 		{
-			ImGui::TextDisabled("No rendered shadow slices.");
+			if (bIsDirectional || View.SourceActor == SelectedOwner)
+			{
+				MyLightViews.push_back(&View);
+			}
+		}
+
+		if (MyLightViews.empty())
+		{
+			ImGui::TextDisabled("No shadow slices for this light.");
 		}
 		else
 		{
 			uint32 CurrentSlice = ShadowFeature->GetDebugViewSlice();
 
 			bool bCurrentValid = false;
-			for (uint32 Slice : AvailableSlices)
+			for (const auto* View : MyLightViews)
 			{
-				if (Slice == CurrentSlice)
+				if (View->ArraySlice == CurrentSlice)
 				{
 					bCurrentValid = true;
 					break;
@@ -2793,49 +2806,151 @@ void FPropertyWindow::DrawLightComponentDetails(ULightComponent* LightComponent,
 
 			if (!bCurrentValid)
 			{
-				CurrentSlice = AvailableSlices[0];
+				CurrentSlice = MyLightViews[0]->ArraySlice;
 				ShadowFeature->SetDebugViewSlice(CurrentSlice);
 			}
 
-			char CurrentLabel[64];
-			snprintf(CurrentLabel, sizeof(CurrentLabel), "Slice %u", CurrentSlice);
-
-			if (ImGui::BeginCombo("Shadow Debug Slice", CurrentLabel))
+			if (!bIsDirectional && MyLightViews.size() == 1)
 			{
-				for (uint32 Slice : AvailableSlices)
+				ImGui::Text("Single Slice (Fixed)");
+			}
+			else
+			{
+				char CurrentLabel[64];
+				if (bIsDirectional)
+					snprintf(CurrentLabel, sizeof(CurrentLabel), "Cascade %u", CurrentSlice);
+				else
+					snprintf(CurrentLabel, sizeof(CurrentLabel), "Face/Slice %u", CurrentSlice);
+
+				if (ImGui::BeginCombo("##ShadowDebugSlice", CurrentLabel))
 				{
-					char Label[64];
-					snprintf(Label, sizeof(Label), "Slice %u", Slice);
-
-					const bool bSelected = (Slice == CurrentSlice);
-					if (ImGui::Selectable(Label, bSelected))
+					for (size_t i = 0; i < MyLightViews.size(); ++i)
 					{
-						ShadowFeature->SetDebugViewSlice(Slice);
-					}
+						uint32 ActualSliceIndex = MyLightViews[i]->ArraySlice;
+						char Label[64];
 
-					if (bSelected)
-					{
-						ImGui::SetItemDefaultFocus();
+						if (bIsDirectional)
+							snprintf(Label, sizeof(Label), "Cascade %zu", i);
+						else if (SelectedComponent->IsA(UPointLightComponent::StaticClass()))
+							snprintf(Label, sizeof(Label), "Face %zu (Cube)", i);
+						else
+							snprintf(Label, sizeof(Label), "Slice %u", ActualSliceIndex);
+
+						const bool bSelected = (ActualSliceIndex == CurrentSlice);
+						if (ImGui::Selectable(Label, bSelected))
+						{
+							ShadowFeature->SetDebugViewSlice(ActualSliceIndex);
+						}
+
+						if (bSelected)
+							ImGui::SetItemDefaultFocus();
 					}
+					ImGui::EndCombo();
 				}
-
-				ImGui::EndCombo();
 			}
 		}
 
-		ID3D11ShaderResourceView* ShadowPreviewSRV = ShadowFeature->GetShadowDebugPreviewSRV();
-		if (ShadowPreviewSRV && ShadowFeature->GetDebugViewMode() != EShadowDebugViewMode::None)
+		bIsDirectional = SelectedComponent && SelectedComponent->IsA(UDirectionalLightComponent::StaticClass());
+		bool bIsSpot = SelectedComponent && SelectedComponent->IsA(USpotLightComponent::StaticClass());
+		bool bIsPoint = SelectedComponent && SelectedComponent->IsA(UPointLightComponent::StaticClass());
+		SelectedOwner = SelectedComponent ? SelectedComponent->GetOwner() : nullptr;
+
+		const auto& Views = bIsDirectional
+			? ShadowFeature->GetLastDirectionalShadowViews()
+			: ShadowFeature->GetLastLocalShadowViews();
+
+		std::vector<const FShadowViewRenderItem*> MyViews;
+		for (const auto& View : Views)
 		{
-			const float  PreviewWidth = (std::min)(ImGui::GetContentRegionAvail().x, 256.0f);
+			if (bIsDirectional || View.SourceActor == SelectedOwner)
+			{
+				MyViews.push_back(&View);
+			}
+		}
+
+		ImGui::Text("Debug Slice");
+		ImGui::NextColumn();
+
+		const FShadowViewRenderItem* SelectedView = nullptr;
+
+		if (MyViews.empty())
+		{
+			ImGui::TextDisabled("No shadow views found.");
+		}
+		else
+		{
+			if (bIsSpot)
+			{
+				ImGui::TextDisabled("Fixed to Selected Spot Light");
+				SelectedView = MyViews[0];
+				ShadowFeature->SetDebugViewSlice(SelectedView->ArraySlice);
+			}
+			else
+			{
+				uint32 CurrentSlice = ShadowFeature->GetDebugViewSlice();
+
+				bool bValid = false;
+				for (auto* V : MyViews) { if (V->ArraySlice == CurrentSlice) { bValid = true; break; } }
+				if (!bValid)
+				{
+					CurrentSlice = MyViews[0]->ArraySlice;
+					ShadowFeature->SetDebugViewSlice(CurrentSlice);
+				}
+
+				char CurrentLabel[64];
+				snprintf(CurrentLabel, sizeof(CurrentLabel), bIsDirectional ? "Cascade (Slice %u)" : "Face (Slice %u)", CurrentSlice);
+
+				if (ImGui::BeginCombo(bIsDirectional ? "Cascade" : "Cube Face", CurrentLabel))
+				{
+					for (size_t i = 0; i < MyViews.size(); ++i)
+					{
+						uint32 SliceVal = MyViews[i]->ArraySlice;
+						char Label[64];
+
+						snprintf(Label, sizeof(Label), bIsDirectional ? "Cascade %zu (Slice %u)" : "Face %zu (Slice %u)", i, SliceVal);
+
+						bool bSelected = (SliceVal == CurrentSlice);
+						if (ImGui::Selectable(Label, bSelected))
+						{
+							ShadowFeature->SetDebugViewSlice(SliceVal);
+						}
+						if (bSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				for (auto* V : MyViews) { if (V->ArraySlice == ShadowFeature->GetDebugViewSlice()) { SelectedView = V; break; } }
+			}
+		}
+
+		if (SelectedView && ShadowFeature->GetDebugViewMode() != EShadowDebugViewMode::None)
+		{
+			const float PreviewWidth = (std::min)(ImGui::GetContentRegionAvail().x, 256.0f);
 			const ImVec2 PreviewSize(PreviewWidth, PreviewWidth);
 
 			ImGui::Spacing();
-			ImGui::TextDisabled("Preview");
-			ImGui::Image(
-				reinterpret_cast<ImTextureID>(ShadowPreviewSRV),
-				PreviewSize,
-				ImVec2(0.0f, 0.0f),
-				ImVec2(1.0f, 1.0f));
+
+			if (SelectedView->bAtlasAllocated)
+			{
+				ID3D11ShaderResourceView* AtlasSRV = bIsDirectional
+					? ShadowFeature->GetDirShadowDepthAtlasSRV()
+					: ShadowFeature->GetLocalShadowDepthAtlasSRV();
+
+				const float AtlasRes = static_cast<float>(bIsDirectional
+					? ShadowConfig::DirMaxShadowDepthResolution
+					: ShadowConfig::MaxShadowMapResolution);
+
+				ImVec2 uv0(SelectedView->AtlasUV.X / AtlasRes, SelectedView->AtlasUV.Y / AtlasRes);
+				ImVec2 uv1((SelectedView->AtlasUV.X + SelectedView->AtlasUV.Z) / AtlasRes,
+					(SelectedView->AtlasUV.Y + SelectedView->AtlasUV.Z) / AtlasRes);
+
+				ImGui::TextDisabled(bIsDirectional ? "Preview: Directional Cascade" : "Preview: Spot Light");
+				ImGui::Image(reinterpret_cast<ImTextureID>(AtlasSRV), PreviewSize, uv0, uv1);
+			}
+			else
+			{
+				ImGui::TextDisabled("Point Light Preview SRV unavailable.");
+			}
 		}
 		else
 		{
