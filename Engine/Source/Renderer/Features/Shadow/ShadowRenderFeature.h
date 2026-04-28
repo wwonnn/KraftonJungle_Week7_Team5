@@ -46,6 +46,8 @@ public:
 
 	void UnbindShadowResources(FRenderer& Renderer);
 
+	void ClearShadowAtlasState(FRenderer& Renderer);
+
 	void Release();
 
 	ID3D11ShaderResourceView* GetLocalShadowDepthAtlasSRV() const

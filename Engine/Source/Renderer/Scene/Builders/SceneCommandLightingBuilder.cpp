@@ -226,7 +226,7 @@ namespace
 	}
 	uint32 QuantizeDiraShadowResolution(uint32 Resolution)
 	{
-		if (Resolution >= 4096) return 409;
+		if (Resolution >= 4096) return 4096;
 		return QuantizeShadowResolution(Resolution);
 	}
 

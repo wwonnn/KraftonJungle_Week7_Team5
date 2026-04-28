@@ -1,41 +1,89 @@
 #include "ShadowAtlasAllocator.h"
 
-ShadowAtlasNode* ShadowAtlasNode::Insert(int requiredSize)
+FShadowAtlasNode* FShadowAtlasNode::Insert(int RequiredSize)
 {
-	if (Children[0])
+	if (!IsLeaf())
 	{
+		// 큰 블록부터 안정적으로 탐색
 		for (int i = 0; i < 4; ++i)
 		{
-			if (ShadowAtlasNode* InsertedNode = Children[i]->Insert(requiredSize))
+			if (FShadowAtlasNode* Node = Children[i]->Insert(RequiredSize))
 			{
-				return InsertedNode;
+				return Node;
 			}
 		}
+
 		return nullptr;
 	}
 
-	if (bUsed || Size < requiredSize)
+	if (bUsed)
 	{
 		return nullptr;
 	}
 
-	if (Size == requiredSize)
+	if (RequiredSize > Size)
+	{
+		return nullptr;
+	}
+
+	if (RequiredSize == Size)
 	{
 		bUsed = true;
 		return this;
 	}
 
 	Split();
-    return Children[0]->Insert(requiredSize);
+	return Children[0]->Insert(RequiredSize);
 }
 
-void ShadowAtlasNode::Split()
+void FShadowAtlasNode::Split()
 {
-	int half = Size / 2;
+	const int HalfSize = Size / 2;
 
-	// 자식 노드 생성 (DirectX 좌표계: 우하단 방향으로 증가)
-	Children[0] = std::make_unique<ShadowAtlasNode>(X, Y, half);                 // Top-Left
-	Children[1] = std::make_unique<ShadowAtlasNode>(X + half, Y, half);          // Top-Right
-	Children[2] = std::make_unique<ShadowAtlasNode>(X, Y + half, half);          // Bottom-Left
-	Children[3] = std::make_unique<ShadowAtlasNode>(X + half, Y + half, half);   // Bottom-Right
+	Children[0] = std::make_unique<FShadowAtlasNode>(X, Y, HalfSize);
+	Children[1] = std::make_unique<FShadowAtlasNode>(X + HalfSize, Y, HalfSize);
+	Children[2] = std::make_unique<FShadowAtlasNode>(X, Y + HalfSize, HalfSize);
+	Children[3] = std::make_unique<FShadowAtlasNode>(X + HalfSize, Y + HalfSize, HalfSize);
 }
+
+bool FShadowAtlasAllocator::Allocate(uint32 RequestedSize, FShadowAtlasAllocation& OutAllocation)
+{
+	OutAllocation = {};
+
+	uint32 NormalizedSize = NormalizeSize(RequestedSize);
+	if (NormalizedSize < Desc.MinAllocateSize)
+	{
+		return false;
+	}
+
+	const uint32 MinFallbackSize = std::max(
+		Desc.MinAllocateSize,
+		NormalizedSize >> Desc.MaxFallbackMipDrop
+	);
+
+	uint32 TrySize = NormalizedSize;
+
+	while (TrySize >= MinFallbackSize)
+	{
+		if (FShadowAtlasNode* Node = RootNode->Insert(static_cast<int>(TrySize)))
+		{
+			OutAllocation.X = Node->X;
+			OutAllocation.Y = Node->Y;
+			OutAllocation.Size = Node->Size;
+			OutAllocation.RequestedSize = NormalizedSize;
+			OutAllocation.AllocatedSize = TrySize;
+			return true;
+		}
+
+		TrySize >>= 1;
+	}
+
+	return false;
+}
+
+uint32 FShadowAtlasAllocator::NormalizeSize(uint32 RequestedSize) const
+{
+	RequestedSize = std::min(RequestedSize, Desc.AtlasSize);
+	RequestedSize = RoundDownPowerOfTwo(RequestedSize);
+	return RequestedSize;
+};
