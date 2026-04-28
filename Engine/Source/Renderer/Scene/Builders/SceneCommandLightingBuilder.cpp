@@ -160,6 +160,11 @@ namespace
 		if (Resolution >= 128)  return 128;
 		return 64;
 	}
+	uint32 QuantizeDiraShadowResolution(uint32 Resolution)
+	{
+		if (Resolution >= 4096) return 409;
+		return QuantizeShadowResolution(Resolution);
+	}
 
 	uint32 AddPointShadowView(FSceneLightingInputs& Inputs, uint32 ShadowLightIndex, uint32 ExplicitArraySlice, const FShadowViewRenderItem& InView) 
 	{
@@ -400,8 +405,11 @@ namespace
 			ViewItem.PositionWS = FrustumCenter;
 			ViewItem.NearZ = BoxNear;
 			ViewItem.FarZ = BoxFar;
-			ViewItem.RequestedResolution = ShadowConfig::DirShadowDepthResolution;
+			
 
+			float ResolutionScale = DirLight->GetShadowResolutionScale();
+			uint32 RequestedResolution = QuantizeDiraShadowResolution(static_cast<uint32>(ShadowConfig::DefaultShadowMapResolution * ResolutionScale));
+			ViewItem.RequestedResolution = RequestedResolution;
 			ViewItem.BiasParams = { DirLight->GetCascadeBias(i), DirLight->GetCascadeSlopeBias(i), 0.0f, 0.0f };
 			ViewItem.View = FMatrix::MakeViewLookAtLH(LightPosition, LightPosition + LightItem.DirectionWS, UpVector);
 			ViewItem.Projection = FMatrix::MakeOrthographicLH(BoxWidth, BoxHeight, BoxNear, BoxFar);

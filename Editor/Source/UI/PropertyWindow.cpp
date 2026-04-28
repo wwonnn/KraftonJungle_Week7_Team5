@@ -2707,6 +2707,12 @@ void FPropertyWindow::DrawLightComponentDetails(ULightComponent* LightComponent,
 	}
 	else
 	{
+		bool bIsDirectional = LightComponent->IsA(UDirectionalLightComponent::StaticClass());
+		if (ShadowFeature->GetDebugViewMode() != EShadowDebugViewMode::None)
+		{
+			ShadowFeature->SetDebugDirectional(bIsDirectional);
+		}
+
 		int DebugMode  = static_cast<int>(ShadowFeature->GetDebugViewMode());
 		int DebugSlice = static_cast<int>(ShadowFeature->GetDebugViewSlice());
 

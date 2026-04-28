@@ -19,6 +19,7 @@ namespace ShadowConfig
 	static constexpr uint32 PointShadowSliceOffset = MaxSpotShadowViews;
 
 	static constexpr uint32 DefaultShadowMapResolution = 512;
+	static constexpr uint32 MaxLocalShadowMapResolution = 2048;
 	static constexpr uint32 MinShadowMapResolution     = 64;
 	static constexpr uint32 MaxShadowMapResolution     = 4096;
 	static constexpr uint32 DirShadowDepthResolution = 4096;

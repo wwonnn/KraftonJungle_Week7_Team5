@@ -1945,14 +1945,14 @@ bool FShadowRenderFeature::RenderDebugPreview(
 		return true;
 	}
 
-	if (!LocalShadowDepthAtlasSRV)
-	{
-		return false;
-	}
+	ID3D11ShaderResourceView* TargetDepthSRV = bDebugDirectional ? DirShadowDepthAtlasSRV : LocalShadowDepthAtlasSRV;
+	ID3D11ShaderResourceView* TargetMomentsSRV = bDebugDirectional ? DirShadowMomentsAtlasSRV : LocalShadowMomentsAtlasSRV;
+	const auto& TargetViews = bDebugDirectional ? SceneViewData.LightingInputs.DirShadowViews : SceneViewData.LightingInputs.ShadowViews;
+	if (!TargetDepthSRV) return false;
 
-	if ((DebugViewMode == EShadowDebugViewMode::VSMMean ||
-			DebugViewMode == EShadowDebugViewMode::VSMVariance) &&
-		!LocalShadowMomentsAtlasSRV)
+	if ((DebugViewMode == EShadowDebugViewMode::VSMMean 
+		|| DebugViewMode == EShadowDebugViewMode::VSMVariance)
+		&& !TargetMomentsSRV)
 	{
 		return false;
 	}
@@ -1976,9 +1976,10 @@ bool FShadowRenderFeature::RenderDebugPreview(
 
 	DebugAvailableSlices.clear();
 
-	for (const FShadowViewRenderItem& View : SceneViewData.LightingInputs.ShadowViews)
+	for (const FShadowViewRenderItem& View : TargetViews)
 	{
-		if (View.ArraySlice < ShadowConfig::MaxShadowViews)
+		uint32 MaxLimit = bDebugDirectional ? ShadowConfig::MaxDirCascade : ShadowConfig::MaxShadowViews;
+		if (View.ArraySlice < MaxLimit)
 		{
 			if (std::find(DebugAvailableSlices.begin(), DebugAvailableSlices.end(), View.ArraySlice) == DebugAvailableSlices.end())
 			{
@@ -1994,10 +1995,10 @@ bool FShadowRenderFeature::RenderDebugPreview(
 		return false;
 	}
 
-	const uint32 RequestedSlice = (std::min)(DebugViewSlice, ShadowConfig::MaxShadowViews - 1u);
+	const uint32 RequestedSlice = (std::min)(DebugViewSlice, (bDebugDirectional ? ShadowConfig::MaxDirCascade : ShadowConfig::MaxShadowViews) - 1u);
 
 	const FShadowViewRenderItem* SelectedView = nullptr;
-	for (const FShadowViewRenderItem& View : SceneViewData.LightingInputs.ShadowViews)
+	for (const FShadowViewRenderItem& View : TargetViews)
 	{
 		if (View.ArraySlice == RequestedSlice)
 		{
@@ -2078,8 +2079,8 @@ bool FShadowRenderFeature::RenderDebugPreview(
 
 	const FFullscreenPassShaderResourceBinding ShaderResources[] =
 	{
-		{ 0, LocalShadowDepthAtlasSRV },
-		{ 1, LocalShadowMomentsAtlasSRV },
+		{ 0, TargetDepthSRV },
+		{ 1, TargetMomentsSRV },
 	};
 
 	const FFullscreenPassSamplerBinding Samplers[] =

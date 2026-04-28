@@ -99,7 +99,8 @@ public:
 	{
 		return DebugViewSlice;
 	}
-
+	void SetDebugDirectional(bool bInDirectional) { bDebugDirectional = bInDirectional; }
+	bool IsDebugDirectional() const { return bDebugDirectional; }
 	ID3D11ShaderResourceView* GetShadowDebugPreviewSRV() const
 	{
 		return ShadowDebugPreviewSRV;
@@ -258,6 +259,7 @@ private:
 	bool                 bShadowDepthArrayDirty = true;
 	bool                 bDirShadowDepthArrayDirty     = true;
 	bool                 bMomentsBlurValid          = false;
+	bool				 bDebugDirectional			= true;
 	EShadowFilterMode    GlobalFilterMode           = EShadowFilterMode::VSM;
 	EShadowDebugViewMode DebugViewMode              = EShadowDebugViewMode::None;
 	uint32               DebugViewSlice             = 0;
