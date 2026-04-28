@@ -74,7 +74,7 @@ float4 main(VS_OUTPUT Input) : SV_TARGET
 		float3 L_dir = normalize(-Directional.DirectionEtc.xyz);
 		float diff = max(0.0f, dot(N, L_dir));
 	
-		float viewDepth = length(CameraPosition.xyz - Input.WorldPosition);
+		float viewDepth = mul(float4(Input.WorldPosition, 1.0f), ClusterView).x;
 		float shadow = EvaluateDirectionalShadow(0, Input.WorldPosition, N, L_dir, viewDepth);
 		lighting += Directional.ColorIntensity.xyz * Directional.ColorIntensity.w * diff * shadow;
     }
@@ -105,7 +105,7 @@ float4 main(VS_OUTPUT Input) : SV_TARGET
 		float3 L_dir = normalize(-Directional.DirectionEtc.xyz);
 		float diff = max(0.0f, dot(N, L_dir));
 	
-		float viewDepth = length(CameraPosition.xyz - Input.WorldPosition);
+		float viewDepth = mul(float4(Input.WorldPosition, 1.0f), ClusterView).x;
 		float shadow = EvaluateDirectionalShadow(0, Input.WorldPosition, N, L_dir, viewDepth);
 		float3 dirDiffuse = Directional.ColorIntensity.xyz * Directional.ColorIntensity.w * diff * shadow;
 		diffuseLighting += dirDiffuse;

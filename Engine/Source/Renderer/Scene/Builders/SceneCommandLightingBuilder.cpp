@@ -463,7 +463,7 @@ namespace
 
 			// -2000으로 두면 VSM의 빛샘현상이 너무 심하게 나타남.
 			// float BoxNear = -SphereRadius - 2000.0f; 
-			float BoxNear = -SphereRadius;
+			float BoxNear = -SphereRadius - 100.0f;
 			float BoxFar = SphereRadius;
 
 			FShadowViewRenderItem ViewItem;

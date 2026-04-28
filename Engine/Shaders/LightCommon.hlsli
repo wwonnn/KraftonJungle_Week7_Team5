@@ -928,7 +928,7 @@ float4 CalculateDirectionalLight(FDirectionalLightInfo info,
 	float3 H = normalize(L + V);
 
 	float diff = max(0.0f, dot(N, L));
-	float spec = pow(max(0.0f, dot(N, H)), Shininess);
+    float spec = (diff > 0.0f) ? pow(max(0.0f, dot(N, H)), Shininess) : 0.0f;
 
     float3 diffuse = info.ColorIntensity.xyz * info.ColorIntensity.w * diff;
     float3 specular = info.ColorIntensity.xyz * info.ColorIntensity.w * spec;
