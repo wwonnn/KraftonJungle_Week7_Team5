@@ -20,7 +20,7 @@ enum class EShadowDebugViewMode : uint32
 	VSMVariance = 3
 };
 
-class FShadowRenderFeature
+class ENGINE_API FShadowRenderFeature
 {
 public:
 	~FShadowRenderFeature();
@@ -107,7 +107,7 @@ public:
 	{
 		return ShadowDebugPreviewSRV;
 	}
-
+	ID3D11ShaderResourceView* GetPointLightFacePreviewSRV(ID3D11Device* Device, ID3D11DeviceContext* Context, uint32 ArraySlice);
 	const TArray<uint32>& GetDebugAvailableSlices() const
 	{
 		return DebugAvailableSlices;
@@ -257,6 +257,8 @@ private:
 	ID3D11Buffer*				DirShadowViewBuffer		= nullptr;
 	ID3D11ShaderResourceView*	DirShadowViewBufferSRV = nullptr;
 
+	ID3D11Texture2D*			PointDebugTexture		= nullptr;
+	ID3D11ShaderResourceView*	PointDebugSRV			= nullptr;
 
 	ID3D11SamplerState*  ShadowComparisonSampler    = nullptr;
 	ID3D11SamplerState*  ShadowLinearSampler        = nullptr;

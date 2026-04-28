@@ -328,6 +328,9 @@ void FShadowRenderFeature::Release()
 	SafeRelease(ShadowCacheDepthCube);
 	SafeRelease(ShadowCacheMomentsCube);
 
+	SafeRelease(PointDebugSRV);
+	SafeRelease(PointDebugTexture);
+
 	bMomentsBlurValid      = false;
 	bShadowDepthArrayDirty = true;
 }
@@ -380,6 +383,41 @@ bool FShadowRenderFeature::RenderShadows(
 	return true;
 }
 
+
+ID3D11ShaderResourceView* FShadowRenderFeature::GetPointLightFacePreviewSRV(ID3D11Device* Device, ID3D11DeviceContext* Context, uint32 ArraySlice)
+{
+	ID3D11ShaderResourceView* CubeArraySRV = ShadowDepthCubeArraySRV;
+	if (!CubeArraySRV) return nullptr;
+
+	ID3D11Resource* CubeRes = nullptr;
+	CubeArraySRV->GetResource(&CubeRes);
+
+	D3D11_TEXTURE2D_DESC CubeDesc;
+	static_cast<ID3D11Texture2D*>(CubeRes)->GetDesc(&CubeDesc);
+
+	if (!PointDebugTexture)
+	{
+		D3D11_TEXTURE2D_DESC TexDesc = CubeDesc;
+		TexDesc.ArraySize = 1;
+		TexDesc.MiscFlags = 0;
+		TexDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		Device->CreateTexture2D(&TexDesc, nullptr, &PointDebugTexture);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MipLevels = 1;
+
+		Device->CreateShaderResourceView(PointDebugTexture, &srvDesc, &PointDebugSRV);
+	}
+
+	uint32 Subresource = D3D11CalcSubresource(0, ArraySlice, CubeDesc.MipLevels);
+	Context->CopySubresourceRegion(PointDebugTexture, 0, 0, 0, 0, CubeRes, Subresource, nullptr);
+
+	CubeRes->Release();
+
+	return PointDebugSRV;
+}
 
 bool FShadowRenderFeature::EnsureLinearSampler(const FRenderer& Renderer)
 {
@@ -2124,7 +2162,8 @@ bool FShadowRenderFeature::RenderDebugPreview(
 	}
 
 	const uint32 ShadowViewCount = static_cast<uint32>(SceneViewData.LightingInputs.ShadowViews.size());
-	if (ShadowViewCount == 0)
+	const uint32 DirShadowViewCount = static_cast<uint32>(SceneViewData.LightingInputs.DirShadowViews.size());
+	if (ShadowViewCount == 0 && DirShadowViewCount == 0)
 	{
 		return false;
 	}

@@ -11,10 +11,11 @@ void UDirectionalLightComponent::PostConstruct()
 	IntensityUnits = ELightUnits::Lux;
 	
 	Intensity = 2.0f;
+	ShadowResolutionScale = 8.0f;
 
 	CascadeCount = 4;
-	ShadowFarZ = 200.0f;
-	SplitLambda = 0.7f;
+	ShadowFarZ = 300.0f;
+	SplitLambda = 0.9f;
 	CascadeTransitionValue = 0.1f;
 }
 

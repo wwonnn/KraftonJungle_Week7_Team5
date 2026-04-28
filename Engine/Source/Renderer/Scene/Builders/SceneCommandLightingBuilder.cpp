@@ -381,7 +381,7 @@ namespace
 		uint32 CascadeCount = DirLight->GetCascadeCount();
 		CascadeCount = (std::min)(CascadeCount, ShadowConfig::MaxDirCascade);
 
-		TArray<float> FrustumSplits = FCasCade::CalculateCascadeSplits(CascadeCount, View.NearZ, View.FarZ, DirLight->GetSplitLambda());
+		TArray<float> FrustumSplits = FCasCade::CalculateCascadeSplits(CascadeCount, View.NearZ, DirLight->GetShadowFarZ(), DirLight->GetSplitLambda());
 		
 		if (FrustumSplits.size() < 2)
 		{
@@ -465,7 +465,7 @@ namespace
 
 			// -2000으로 두면 VSM의 빛샘현상이 너무 심하게 나타남.
 			// float BoxNear = -SphereRadius - 2000.0f; 
-			float BoxNear = -SphereRadius;
+			float BoxNear = -SphereRadius - 100.0f;
 			float BoxFar = SphereRadius;
 
 			FShadowViewRenderItem ViewItem;
