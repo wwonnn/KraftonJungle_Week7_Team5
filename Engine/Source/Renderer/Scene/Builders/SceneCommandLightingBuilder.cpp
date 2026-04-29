@@ -397,6 +397,9 @@ namespace
 
 		FVector UpVector = (std::abs(LightItem.DirectionWS.Z) > 0.999f) ? FVector::YAxisVector : FVector::ZAxisVector;
 
+		float ResolutionScale = DirLight->GetShadowResolutionScale();
+		uint32 RequestedResolution = QuantizeDiraShadowResolution(static_cast<uint32>(ShadowConfig::DefaultShadowMapResolution * ResolutionScale));
+
 		FMatrix CameraInvView = View.InverseView;
 		FMatrix CameraInvProj = View.InverseProjection;
 
@@ -449,7 +452,7 @@ namespace
 			float BoxWidth = SphereRadius * 2.0f;
 			float BoxHeight = SphereRadius * 2.0f;
 
-			float WorldUnitsPerTexel = BoxWidth / ShadowConfig::DirShadowDepthResolution;
+			float WorldUnitsPerTexel = BoxWidth / RequestedResolution;
 
 			// Texel 작업을 위함. Sanpping 현상 완화
 			// 빛을 0, 0, 0으로 두고, 이를 기반으로 위치를 Texel화 -> floor를 이용
@@ -473,10 +476,7 @@ namespace
 			ViewItem.PositionWS = FrustumCenter;
 			ViewItem.NearZ = BoxNear;
 			ViewItem.FarZ = BoxFar;
-			
 
-			float ResolutionScale = DirLight->GetShadowResolutionScale();
-			uint32 RequestedResolution = QuantizeDiraShadowResolution(static_cast<uint32>(ShadowConfig::DefaultShadowMapResolution * ResolutionScale));
 			ViewItem.RequestedResolution = RequestedResolution;
 			ViewItem.BiasParams = { DirLight->GetCascadeBias(i), DirLight->GetCascadeSlopeBias(i), 0.0f, 0.0f };
 			ViewItem.View = FMatrix::MakeViewLookAtLH(LightPosition, LightPosition + LightItem.DirectionWS, UpVector);
